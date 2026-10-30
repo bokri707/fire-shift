@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { AppState as RNAppState } from 'react-native';
 import { fetchTeamIfChanged, myProfile, upsertMember } from './cloud';
-import { fromIdx, idx } from './lib/date';
+import { iso, parse } from './lib/date';
 import { sync, useStore } from './store';
 
 /** 화면(탭)별 서버 확인 간격(밀리초). 0이면 확인하지 않습니다. */
 const POLL_MS: Record<string, number> = {
   team: 6000, // 투표·팀원을 보는 화면: 비교적 자주
   cal: 45000, // 달력만 볼 때: 가끔
+  pair: 30000, // 부부 달력: 가끔 (배우자 기록이 바뀌었는지)
   set: 0, // 설정 화면: 안 함
 };
 
@@ -79,7 +80,10 @@ export default function CloudSync({ tab }: { tab: string }): null {
     Object.keys(hashes.current).forEach((c) => { if (codes.indexOf(c) < 0) delete hashes.current[c]; });
   }, [key]);
 
-  const prof = JSON.stringify(myProfile(state, fromIdx(idx(today) - 7)));
+  // 지난달 1일부터의 기록을 올립니다. (함께 보기에서 이번 달·지난달 육아시간이 상대에게 보이게 하기 위함. 글자 몇 개 정도라 용량 부담은 거의 없습니다.)
+  const pt = parse(today);
+  const since = pt[1] === 1 ? iso(pt[0] - 1, 12, 1) : iso(pt[0], pt[1] - 1, 1);
+  const prof = JSON.stringify(myProfile(state, since));
   useEffect(() => {
     if (!key || prof === 'null') return undefined;
     const p = JSON.parse(prof) as { name: string; team: number; anchor: string; ex: Record<string, string> };

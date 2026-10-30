@@ -5,16 +5,18 @@ import AdBanner from './src/AdBanner';
 import CalendarScreen from './src/screens/CalendarScreen';
 import CloudSync from './src/CloudSync';
 import DutyNotifier from './src/DutyNotifier';
+import PairScreen from './src/screens/PairScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TeamScreen from './src/screens/TeamScreen';
 import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
 import { StoreProvider } from './src/store';
 import { useTheme } from './src/theme';
 
-type Tab = 'cal' | 'team' | 'set';
+type Tab = 'cal' | 'team' | 'pair' | 'set';
 const TABS: { v: Tab; label: string }[] = [
   { v: 'cal', label: '달력' },
   { v: 'team', label: '팀·모임' },
+  { v: 'pair', label: '부부·육아' },
   { v: 'set', label: '설정' },
 ];
 
@@ -54,6 +56,7 @@ function Shell(): React.ReactElement {
       <View style={{ flex: 1 }}>
         <View style={{ flex: 1, display: tab === 'cal' ? 'flex' : 'none' }}><CalendarScreen /></View>
         <View style={{ flex: 1, display: tab === 'team' ? 'flex' : 'none' }}><TeamScreen /></View>
+        <View style={{ flex: 1, display: tab === 'pair' ? 'flex' : 'none' }}><PairScreen /></View>
         <View style={{ flex: 1, display: tab === 'set' ? 'flex' : 'none' }}><SettingsScreen onDone={() => setTab('cal')} /></View>
       </View>
       <AdBanner />

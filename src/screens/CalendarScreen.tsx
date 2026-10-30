@@ -118,7 +118,7 @@ export default function CalendarScreen(): React.ReactElement {
   );
 }
 
-type DraftType = 'none' | 'leave' | 'edu' | 'swap' | 'care';
+type DraftType = 'none' | 'leave' | 'edu' | 'dispatch' | 'etc' | 'swap' | 'careIn' | 'careOut' | 'careBoth';
 
 function EditorModal({ date, onClose }: { date: string; onClose: () => void }): React.ReactElement {
   const t = useTheme();
@@ -126,7 +126,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
   const e = eff(state, date);
   const p = parse(date);
   const cur = state.ex[date];
-  const [type, setType] = useState<DraftType>(cur ? cur.type : 'none');
+  const [type, setType] = useState<DraftType>(cur ? (cur.type === 'care' ? 'careOut' : cur.type) : 'none');
   const [who, setWho] = useState(cur ? cur.who : '');
   const [memo, setMemo] = useState(cur ? cur.memo : '');
   const [err, setErr] = useState('');
@@ -176,11 +176,17 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
             </View>
           ) : null}
           <SegRow<DraftType>
-            options={[{ v: 'none', label: '기본' }, { v: 'leave', label: '연가' }, { v: 'edu', label: '교육' }, { v: 'swap', label: '맞교대' }, { v: 'care', label: '육아시간' }]}
+            options={[{ v: 'none', label: '기본' }, { v: 'leave', label: '연가' }, { v: 'edu', label: '교육' }, { v: 'dispatch', label: '파견' }, { v: 'etc', label: '기타' }]}
             value={type}
             onChange={(v) => { setType(v); setErr(''); }}
           />
-          {type === 'care' ? <Hint>근무는 그대로이고, 육아시간을 쓴 날로 표시됩니다. 같은 소모임에 들어 있는 배우자에게도 보입니다.</Hint> : null}
+          <SegRow<DraftType>
+            options={[{ v: 'swap', label: '맞교대' }, { v: 'careIn', label: '육아(출근)' }, { v: 'careOut', label: '육아(퇴근)' }, { v: 'careBoth', label: '육아(둘 다)' }]}
+            value={type}
+            onChange={(v) => { setType(v); setErr(''); }}
+          />
+          {type === 'dispatch' || type === 'etc' ? <Hint>이 날은 근무에서 빠지는 날로 표시됩니다. (교육과 같은 방식) 같은 소모임 팀원의 "연가계획표"에서 빠지는 인원으로 계산됩니다.</Hint> : null}
+          {type === 'careIn' || type === 'careOut' || type === 'careBoth' ? <Hint>근무는 그대로이고, 육아시간을 쓴 날로 표시됩니다. {type === 'careIn' ? '출근할 때 쓰면 당 앞에 육이 붙습니다.' : type === 'careOut' ? '퇴근할 때 쓰면 당 뒤에 육이 붙습니다.' : '출근과 퇴근 모두 쓰면 당 앞뒤로 육이 붙습니다.'} 같은 소모임에 들어 있는 배우자에게도 보입니다.</Hint> : null}
           {type === 'swap' ? (
             <View style={{ gap: 8 }}>
               <Hint>{e.base === 'duty' ? '동료가 내 근무를 대신 서고 나는 쉽니다. 내가 갚을 날이 1일 생깁니다.' : '내가 동료의 근무를 대신 섭니다. 동료에게 받을 날이 1일 생깁니다.'}</Hint>

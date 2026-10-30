@@ -1,27 +1,44 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
-import { WD, firstChar, fmt, fromIdx, idx, parse, wdOf } from '../lib/date';
+import { WD, daysInMonth, firstChar, fmt, fromIdx, idx, iso, parse, wdOf } from '../lib/date';
 import { LBL, Person, decPattern, isThree, mEff, mFree, manualFromEx, meetDays, roster, teamBase } from '../lib/shift';
 import { downloadIcs, meetIcs } from '../lib/ics';
 import { clearCodeFromUrl, codeFromUrl, inviteLink } from '../lib/link';
 import { cloudConfigured, createTeam, deleteMember, deletePoll, fetchTeam, genCode, getTeam, insertPoll, normCode, updatePoll, upsertVote, validCode } from '../cloud';
 import { AppState, CloudInfo, Poll } from '../types';
 import MonthCalendar, { Deco } from '../MonthCalendar';
-import CoupleCard from '../CoupleCard';
+import { CareDot, TeamLeaveCard, careColor } from '../CoupleCard';
+import { isEventPoll } from '../lib/events';
 import { markWrite, newId, useStore } from '../store';
 import { kindColors, useTheme } from '../theme';
 import { Btn, Card, Chip, H2, Hint, Pill, SegRow } from '../ui';
 
+type Sub = 'team' | 'leave' | 'meet';
+
 export default function TeamScreen(): React.ReactElement {
   const { state } = useStore();
   const k = state.cloud ? state.cloud.code : 'local';
+  const [sub, setSub] = useState<Sub>('team');
+  // 화면을 숨길 뿐 없애지 않아서, 메뉴를 오가도 입력 중이던 내용이 유지됩니다.
+  const show = (v: Sub): { display: 'flex' | 'none'; gap: number } => ({ display: sub === v ? 'flex' : 'none', gap: 14 });
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <CloudCard />
-      <RosterCard key={'r' + k} />
-      <CoupleCard key={'c' + k} />
-      <MeetCard key={'m' + k} />
-      <PollsCard key={'p' + k} />
+      <SegRow<Sub>
+        options={[{ v: 'team', label: '우리 팀' }, { v: 'leave', label: '연가계획표' }, { v: 'meet', label: '모임·투표' }]}
+        value={sub}
+        onChange={setSub}
+      />
+      <View style={show('team')}>
+        <RosterCard key={'r' + k} />
+      </View>
+      <View style={show('leave')}>
+        <TeamLeaveCard key={'c' + k} />
+      </View>
+      <View style={show('meet')}>
+        <MeetCard key={'m' + k} />
+        <PollsCard key={'p' + k} />
+      </View>
     </ScrollView>
   );
 }
@@ -141,7 +158,7 @@ function CloudCard(): React.ReactElement | null {
           // 서버에 남아 있는 내 연가·교육·맞교대(종류만)를 되살립니다.
           Object.keys(mine.ex).forEach((k) => {
             const ty = mine.ex[k];
-            if (!ex[k] && (ty === 'leave' || ty === 'edu' || ty === 'swap' || ty === 'care')) ex[k] = { type: ty, who: '', memo: '' };
+            if (!ex[k] && (ty === 'leave' || ty === 'edu' || ty === 'dispatch' || ty === 'etc' || ty === 'swap' || ty === 'care' || ty === 'careIn' || ty === 'careOut' || ty === 'careBoth')) ex[k] = { type: ty, who: '', memo: '' };
           });
         }
         const useTeam = mine ? mine.team : team;
@@ -256,7 +273,127 @@ function CloudCard(): React.ReactElement | null {
   );
 }
 
-/* ---------- 우리 팀 ---------- */
+/* ---------- 우리 팀: 7일 보기(오늘 앞뒤 3일) / 30일 보기(보름씩 한 줄로) ---------- */
+const PHI = 1.618; // 황금비
+const BIG_H = 55; // 피보나치 수 55 : 34 (≈ 1.618)
+const SMALL_H = 34;
+const GAP = 8; // 피보나치 수
+
+function RosterMatrix({ ms, today }: { ms: Person[]; today: string }): React.ReactElement {
+  const t = useTheme();
+  const p0 = parse(today);
+  const [mode, setMode] = useState<'week' | 'month'>('week');
+  const [shift, setShift] = useState(0); // 7일 보기에서 오늘로부터 옮긴 날짜 수 (7의 배수)
+  const nowHalf = p0[2] <= 15 ? 0 : 1;
+  const [mv, setMv] = useState({ y: p0[0], m: p0[1], h: nowHalf }); // 30일 보기: 달 + 전반(1~15일)/후반(16일~말일)
+  const atToday = mode === 'week' ? shift === 0 : mv.y === p0[0] && mv.m === p0[1] && mv.h === nowHalf;
+
+  const dates: string[] = [];
+  if (mode === 'week') {
+    for (let i = -3; i <= 3; i++) dates.push(fromIdx(idx(today) + shift + i));
+  } else {
+    const n = daysInMonth(mv.y, mv.m);
+    const from = mv.h === 0 ? 1 : 16;
+    const to = mv.h === 0 ? 15 : n;
+    for (let d = from; d <= to; d++) dates.push(iso(mv.y, mv.m, d));
+  }
+
+  const step = (dir: number): void => {
+    if (mode === 'week') { setShift(shift + dir * 7); return; }
+    let { y, m, h } = mv;
+    if (dir > 0) { if (h === 0) h = 1; else { h = 0; m++; if (m > 12) { m = 1; y++; } } }
+    else if (h === 1) h = 0; else { h = 1; m--; if (m < 1) { m = 12; y--; } }
+    setMv({ y, m, h });
+  };
+  const goToday = (): void => { setShift(0); setMv({ y: p0[0], m: p0[1], h: nowHalf }); };
+  const switchMode = (v: 'week' | 'month'): void => { goToday(); setMode(v); };
+
+  const dateNum = (s: string): React.ReactElement => {
+    const w = wdOf(s);
+    const isT = s === today;
+    return <Text style={{ color: isT ? t.duty : w === 0 ? t.sun : w === 6 ? t.sat : t.ink2, fontSize: mode === 'week' ? 10.5 : 9.5, fontWeight: isT ? '800' : '400' }}>{parse(s)[2]}</Text>;
+  };
+
+  const gap = mode === 'week' ? 4 : 2;
+  const bars = (content: (s: string) => React.ReactElement): React.ReactElement => (
+    <View style={{ flexDirection: 'row', gap }}>
+      {dates.map((s) => <View key={s} style={{ flex: 1, alignItems: 'center', gap: 2 }}>{content(s)}</View>)}
+    </View>
+  );
+
+  const bigBtn = (v: 'week' | 'month', label: string): React.ReactElement => {
+    const on = mode === v;
+    return (
+      <Pressable
+        key={v}
+        accessibilityRole="button"
+        accessibilityState={{ selected: on }}
+        onPress={() => switchMode(v)}
+        style={{ flex: 1, height: BIG_H, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: on ? t.accent : t.line, backgroundColor: on ? t.accent : t.surface }}
+      >
+        <Text style={{ color: on ? t.onAccent : t.ink, fontSize: 16, fontWeight: '700' }}>{label}</Text>
+      </Pressable>
+    );
+  };
+  const arrow = (dir: number, label: string): React.ReactElement => (
+    <View style={{ flex: 1, alignItems: 'center' }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={dir < 0 ? '이전' : '다음'}
+        onPress={() => step(dir)}
+        style={{ width: Math.round(100 / PHI) + '%', height: SMALL_H, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: t.line, backgroundColor: t.surface }}
+      >
+        <Text style={{ color: t.ink, fontSize: 18, fontWeight: '700' }}>{label}</Text>
+      </Pressable>
+    </View>
+  );
+
+  const f = parse(dates[0]);
+  const l = parse(dates[dates.length - 1]);
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={{ gap: GAP }}>
+        <View style={{ flexDirection: 'row', gap: GAP }}>{bigBtn('week', '7일 보기')}{bigBtn('month', '30일 보기')}</View>
+        <View style={{ flexDirection: 'row', gap: GAP }}>{arrow(-1, '‹')}{arrow(1, '›')}</View>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
+        <Text style={{ color: t.ink, fontSize: 16, fontWeight: '600' }}>{f[0]}년 {f[1]}월 {f[2]}일 ~ {f[1] === l[1] ? '' : l[1] + '월 '}{l[2]}일</Text>
+        {!atToday ? <Btn small ghost label="오늘" onPress={goToday} /> : null}
+      </View>
+      {ms.map((m) => {
+        const e = mEff(m, today);
+        return (
+          <View key={m.id} style={{ gap: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.line }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ color: t.ink, fontWeight: '700' }}>
+                {m.name}
+                {m.isMe ? <Text style={{ color: t.ink2, fontSize: 12, fontWeight: '400' }}>  나</Text> : null}
+                <Text style={{ color: t.ink2, fontSize: 12, fontWeight: '400' }}>  {isThree(m.pat) ? m.team + '팀' : m.pat.n}</Text>
+              </Text>
+              <Pill kind={e.kind} text={e.kind === 'duty' || e.kind === 'off' ? e.label : LBL[e.kind]} />
+            </View>
+            {bars((s) => {
+              const x = mEff(m, s);
+              const c = kindColors(t, x.kind);
+              const txt = x.kind === 'duty' || x.kind === 'off' ? x.l : x.kind === 'edu' ? x.why.slice(0, 1) : LBL[x.kind].slice(0, 1);
+              return (
+                <>
+                  <View style={{ width: '100%', height: 22, borderRadius: mode === 'week' ? 5 : 4, backgroundColor: x.kind === 'duty' ? t.duty : c.bg, borderWidth: 1, borderColor: c.fg, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: mode === 'week' ? 10 : 9, fontWeight: '700', color: x.kind === 'duty' ? t.onDuty : c.fg }}>{txt}</Text>
+                    {x.care === 'in' || x.care === 'both' ? <View style={{ position: 'absolute', left: -3, top: -4 }}><CareDot color={careColor(ms, m.id)} size={mode === 'week' ? 12 : 8} /></View> : null}
+                    {x.care === 'out' || x.care === 'both' ? <View style={{ position: 'absolute', right: -3, top: -4 }}><CareDot color={careColor(ms, m.id)} size={mode === 'week' ? 12 : 8} /></View> : null}
+                  </View>
+                  {dateNum(s)}
+                </>
+              );
+            })}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function RosterCard(): React.ReactElement {
   const t = useTheme();
   const { state, update, today } = useStore();
@@ -298,9 +435,9 @@ function RosterCard(): React.ReactElement {
   return (
     <Card style={{ gap: 10 }}>
       <H2>우리 팀</H2>
-      <Hint>{online ? '팀에 들어온 동료들의 오늘부터 7일 근무입니다. 각자 자기 폰에서 입력한 연가·교육이 반영됩니다.' : '같은 근무조 동료를 이름과 팀 번호로 추가하면 그 사람의 당직·비번이 자동으로 계산됩니다. 막대의 칸을 누르면 그 사람의 연가, 교육을 표시할 수 있습니다. 오늘부터 7일입니다.'}</Hint>
+      <Hint>{online ? '소모임에 들어온 사람 모두의 한 달 근무입니다. 7일 보기는 오늘 앞뒤 3일, 30일 보기는 보름(1~15일, 16일~말일)씩 한 줄로 보여줍니다. 아래 ‹ › 로 앞뒤로 넘기세요. 각자 자기 폰에서 입력한 연가·교육이 반영됩니다.' : '같은 근무조 동료를 이름과 팀 번호로 추가하면 그 사람의 당직·비번이 자동으로 계산됩니다. 막대의 칸을 누르면 그 사람의 연가, 교육을 표시할 수 있습니다. 오늘부터 7일입니다.'}</Hint>
       <Text style={{ color: t.ink, fontSize: 13 }}>오늘 근무: <Text style={{ fontWeight: '700' }}>{onDuty.length ? onDuty.join(', ') : '없음'}</Text></Text>
-      {ms.map((m) => <MemberRow key={m.id} p={m} today={today} onCycle={cycle} onRemove={remove} armed={delArm === m.id} readOnly={online} />)}
+      {online ? <RosterMatrix ms={ms} today={today} /> : ms.map((m) => <MemberRow key={m.id} p={m} today={today} onCycle={cycle} onRemove={remove} armed={delArm === m.id} readOnly={online} />)}
       {online ? null : <View style={{ gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.line }}>
         <Text style={{ color: t.ink2, fontSize: 12 }}>팀원 추가</Text>
         <TextInput
@@ -498,6 +635,7 @@ function PollsCard(): React.ReactElement {
   const t = useTheme();
   const { state, today, netErr, syncedAt } = useStore();
   const live = state.polls
+    .filter((p) => !isEventPoll(p))
     .filter((p) => (p.final || p.dates.slice().sort().pop() || '') >= today)
     .sort((a, b) => b.at - a.at);
   return (
