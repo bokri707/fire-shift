@@ -24,6 +24,7 @@ function Shell(): React.ReactElement {
   const top = Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 24) : 52;
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: t.bg, paddingTop: top }}>
+      <CloudSync tab={tab} />
       <StatusBar style={t.dark ? 'light' : 'dark'} />
       {kakao ? (
         <Pressable onPress={openInExternalBrowser} style={{ backgroundColor: t.accent, paddingVertical: 10, paddingHorizontal: 18 }}>
@@ -59,7 +60,6 @@ function Shell(): React.ReactElement {
 export default function App(): React.ReactElement {
   return (
     <StoreProvider>
-      <CloudSync />
       <Shell />
     </StoreProvider>
   );
