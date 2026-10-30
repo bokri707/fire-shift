@@ -67,6 +67,7 @@ export function eff(st: AppState, s: string): Eff {
   if (e) {
     if (e.type === 'leave') { r.kind = 'leave'; r.label = '연가'; r.works = false; }
     else if (e.type === 'edu') { r.kind = 'edu'; r.label = '교육'; r.works = false; }
+    else if (e.type === 'care') { r.sub = '육아시간'; }
     else if (e.type === 'swap') {
       r.kind = 'swap'; r.label = '맞교대';
       if (base === 'duty') { r.works = false; r.sub = '쉼'; } else { r.works = true; r.sub = '근무'; }
@@ -133,7 +134,7 @@ export function roster(st: AppState): Person[] {
   return list;
 }
 
-export interface MEff { pos: number; base: 'duty' | 'off'; kind: Kind; works: boolean; l: string; label: string; post: boolean }
+export interface MEff { pos: number; base: 'duty' | 'off'; kind: Kind; works: boolean; l: string; label: string; post: boolean; care: boolean }
 
 export function mEff(p: Person, s: string): MEff {
   const bd = baseDay(p.pat, p.anchor, p.manual, s);
@@ -145,7 +146,7 @@ export function mEff(p: Person, s: string): MEff {
   if (t === 'leave') { kind = 'leave'; works = false; }
   else if (t === 'edu') { kind = 'edu'; works = false; }
   else if (t === 'swap') { kind = 'swap'; works = !bd.w; }
-  return { pos: bd.pos, base, kind, works, l: bd.l, label: longLabel(bd.l), post: prev.w };
+  return { pos: bd.pos, base, kind, works, l: bd.l, label: longLabel(bd.l), post: prev.w, care: t === 'care' };
 }
 
 /** 쉬는 날(근무도 교육도 아님)이면 true. 연가·비번은 가능으로 봅니다. */

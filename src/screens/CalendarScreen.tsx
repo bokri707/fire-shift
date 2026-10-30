@@ -118,7 +118,7 @@ export default function CalendarScreen(): React.ReactElement {
   );
 }
 
-type DraftType = 'none' | 'leave' | 'edu' | 'swap';
+type DraftType = 'none' | 'leave' | 'edu' | 'swap' | 'care';
 
 function EditorModal({ date, onClose }: { date: string; onClose: () => void }): React.ReactElement {
   const t = useTheme();
@@ -176,10 +176,11 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
             </View>
           ) : null}
           <SegRow<DraftType>
-            options={[{ v: 'none', label: '기본' }, { v: 'leave', label: '연가' }, { v: 'edu', label: '교육' }, { v: 'swap', label: '맞교대' }]}
+            options={[{ v: 'none', label: '기본' }, { v: 'leave', label: '연가' }, { v: 'edu', label: '교육' }, { v: 'swap', label: '맞교대' }, { v: 'care', label: '육아시간' }]}
             value={type}
             onChange={(v) => { setType(v); setErr(''); }}
           />
+          {type === 'care' ? <Hint>근무는 그대로이고, 육아시간을 쓴 날로 표시됩니다. 같은 소모임에 들어 있는 배우자에게도 보입니다.</Hint> : null}
           {type === 'swap' ? (
             <View style={{ gap: 8 }}>
               <Hint>{e.base === 'duty' ? '동료가 내 근무를 대신 서고 나는 쉽니다. 내가 갚을 날이 1일 생깁니다.' : '내가 동료의 근무를 대신 섭니다. 동료에게 받을 날이 1일 생깁니다.'}</Hint>

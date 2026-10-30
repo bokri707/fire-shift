@@ -7,6 +7,7 @@ import { clearCodeFromUrl, codeFromUrl, inviteLink } from '../lib/link';
 import { cloudConfigured, createTeam, deleteMember, deletePoll, fetchTeam, genCode, getTeam, insertPoll, normCode, updatePoll, upsertVote, validCode } from '../cloud';
 import { AppState, CloudInfo, Poll } from '../types';
 import MonthCalendar, { Deco } from '../MonthCalendar';
+import CoupleCard from '../CoupleCard';
 import { markWrite, newId, useStore } from '../store';
 import { kindColors, useTheme } from '../theme';
 import { Btn, Card, Chip, H2, Hint, Pill, SegRow } from '../ui';
@@ -18,6 +19,7 @@ export default function TeamScreen(): React.ReactElement {
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <CloudCard />
       <RosterCard key={'r' + k} />
+      <CoupleCard key={'c' + k} />
       <MeetCard key={'m' + k} />
       <PollsCard key={'p' + k} />
     </ScrollView>
@@ -139,7 +141,7 @@ function CloudCard(): React.ReactElement | null {
           // 서버에 남아 있는 내 연가·교육·맞교대(종류만)를 되살립니다.
           Object.keys(mine.ex).forEach((k) => {
             const ty = mine.ex[k];
-            if (!ex[k] && (ty === 'leave' || ty === 'edu' || ty === 'swap')) ex[k] = { type: ty, who: '', memo: '' };
+            if (!ex[k] && (ty === 'leave' || ty === 'edu' || ty === 'swap' || ty === 'care')) ex[k] = { type: ty, who: '', memo: '' };
           });
         }
         const useTeam = mine ? mine.team : team;
