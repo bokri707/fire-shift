@@ -6,6 +6,12 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E4B6B"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -23,15 +29,14 @@
       "name": "소방 교대달력",
       "shortName": "소방 교대달력",
       "lang": "ko",
+      "favicon": "./assets/icon.png",
       "themeColor": "#1E4B6B",
-      "backgroundColor": "#EEF2F6",
-      "favicon": "./assets/icon.png"
+      "backgroundColor": "#EEF2F6"
     },
-    "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#1E4B6B"
+    "extra": {
+      "eas": {
+        "projectId": "7b34adce-6e07-432a-9d13-fd346ed0b637"
+      }
     }
   }
 }
