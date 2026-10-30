@@ -7,10 +7,11 @@ import { sync, useStore } from './store';
 /** 들어가 있는 모든 소모임의 팀원·투표를 2.5초마다 받아오고, 내 근무 정보가 바뀌면 모든 소모임에 올립니다. */
 export default function CloudSync(): null {
   const { state, update, today, reportErr, markSynced } = useStore();
-  const list: { code: string; myId: string }[] = [];
-  if (state.cloud) list.push({ code: state.cloud.code, myId: state.cloud.myId });
-  (state.others || []).forEach((g) => list.push({ code: g.code, myId: g.myId }));
+  const list: { code: string; myId: string; nick: string }[] = [];
+  if (state.cloud) list.push({ code: state.cloud.code, myId: state.cloud.myId, nick: state.cloud.nick || state.nick });
+  (state.others || []).forEach((g) => list.push({ code: g.code, myId: g.myId, nick: g.nick || state.nick }));
   const key = list.map((g) => g.code + ':' + g.myId).join('|');
+  const nickKey = JSON.stringify(list.map((g) => [g.code, g.myId, g.nick]));
 
   useEffect(() => {
     if (!key) return undefined;
@@ -52,14 +53,14 @@ export default function CloudSync(): null {
   useEffect(() => {
     if (!key || prof === 'null') return undefined;
     const p = JSON.parse(prof) as { name: string; team: number; anchor: string; ex: Record<string, string> };
-    const groups = key.split('|').map((x) => { const i = x.lastIndexOf(':'); return { code: x.slice(0, i), myId: x.slice(i + 1) }; });
+    const groups = JSON.parse(nickKey) as [string, string, string][];
     const h = setTimeout(() => {
-      groups.forEach((g) => {
-        upsertMember(g.code, { id: g.myId, ...p }).catch(() => reportErr('내 근무 정보를 서버에 올리지 못했습니다.'));
+      groups.forEach(([code, myId, nick]) => {
+        upsertMember(code, { id: myId, ...p, name: nick || p.name }).catch(() => reportErr('내 근무 정보를 서버에 올리지 못했습니다.'));
       });
     }, 700);
     return () => clearTimeout(h);
-  }, [key, prof, reportErr]);
+  }, [key, nickKey, prof, reportErr]);
 
   return null;
 }

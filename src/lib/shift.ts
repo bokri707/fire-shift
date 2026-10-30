@@ -121,7 +121,7 @@ export function manualFromEx(ex: Record<string, string>): Record<string, string>
 export function roster(st: AppState): Person[] {
   const meEx: Record<string, string> = {};
   Object.keys(st.ex).forEach((k) => { meEx[k] = st.ex[k].type; });
-  const list: Person[] = [{ id: 'me', name: st.nick || '나', team: st.team, anchor: st.anchor, ex: meEx, isMe: true, pat: st.pattern, manual: st.manual }];
+  const list: Person[] = [{ id: 'me', name: (st.cloud && st.cloud.nick) || st.nick || '나', team: st.team, anchor: st.anchor, ex: meEx, isMe: true, pat: st.pattern, manual: st.manual }];
   st.members.forEach((m) => {
     const dp = m.ex && m.ex._p ? decPattern(m.ex._p) : null;
     if (dp) {

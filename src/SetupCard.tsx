@@ -134,7 +134,7 @@ export default function SetupCard({ onDone }: { onDone?: () => void }): React.Re
       ) : null}
 
       <View style={{ gap: 6 }}>
-        <Text style={{ color: t.ink2, fontSize: 12 }}>내 별명 (팀 화면에 표시)</Text>
+        <Text style={{ color: t.ink2, fontSize: 12 }}>기본 별명 (새 소모임의 기본값 · 소모임마다 따로 바꿀 수 있음)</Text>
         <TextInput
           value={state.nick} maxLength={12} placeholder="나" placeholderTextColor={t.ink2}
           returnKeyType="done" blurOnSubmit onSubmitEditing={finish}

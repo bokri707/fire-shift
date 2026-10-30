@@ -41,7 +41,20 @@ function CloudCard(): React.ReactElement | null {
   const [armed, setArmed] = useState(false);
   const [note, setNote] = useState('');
   const [resumeId, setResumeId] = useState('');
+  const curNick = (state.cloud && state.cloud.nick) || state.nick || '나';
+  const [myNick, setMyNick] = useState(curNick);
+  const [nickMsg, setNickMsg] = useState('');
+  const curCode = state.cloud ? state.cloud.code : '';
+  useEffect(() => { setMyNick(curNick); setNickMsg(''); }, [curCode, curNick]);
   if (!cloudConfigured()) return null;
+
+  const renameMe = (): void => {
+    const nk = myNick.trim();
+    if (!nk || !state.cloud) return;
+    if (state.members.some((m) => m.name === nk)) { setNickMsg('이 소모임에 같은 별명을 쓰는 사람이 있습니다. 다른 별명으로 바꿔 주세요.'); return; }
+    update((s) => (s.cloud ? { ...s, cloud: { ...s.cloud, nick: nk } } : s));
+    setNickMsg('별명을 "' + nk + '"(으)로 변경했습니다. 이 소모임에만 적용됩니다.');
+  };
 
   const shareCode = async (msg: string): Promise<void> => {
     setNote('');
@@ -74,7 +87,7 @@ function CloudCard(): React.ReactElement | null {
       if (!g || !s.cloud) return s;
       const rest = (s.others || []).filter((x) => x.code !== c);
       rest.push({ ...s.cloud, members: s.members, polls: s.polls });
-      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId }, members: g.members, polls: g.polls, others: rest };
+      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick }, members: g.members, polls: g.polls, others: rest };
     });
   };
 
@@ -91,7 +104,7 @@ function CloudCard(): React.ReactElement | null {
       if (await getTeam(cd)) { fail('이미 쓰는 코드입니다. 다른 코드로 바꿔 주세요.'); return; }
       await createTeam(cd, nm, teamBase(state));
       markWrite();
-      update((s) => ({ ...enter(s, { code: cd, name: nm, myId: newId() }), nick: nk }));
+      update((s) => ({ ...enter(s, { code: cd, name: nm, myId: newId(), nick: nk }), nick: s.cloud ? s.nick : nk }));
       setName(''); setNewCodeText(genCode()); setAdding(false);
       setBusy(false);
     } catch (e) {
@@ -136,7 +149,7 @@ function CloudCard(): React.ReactElement | null {
           if (dp) base = { ...base, team: useTeam, pattern: dp.pat, anchor: dp.anchor, manual: manualFromEx(mine ? mine.ex : {}) };
           else if (isThree(s.pattern)) base = { ...base, team: useTeam, anchor: fromIdx(idx(tm.base) + (useTeam - 1)) };
         }
-        return { ...enter({ ...base, ex, nick: nk, configured: true }, { code: tm.code, name: tm.name, myId: mine ? mine.id : newId() }) };
+        return { ...enter({ ...base, ex, nick: s.cloud ? s.nick : nk, configured: true }, { code: tm.code, name: tm.name, myId: mine ? mine.id : newId(), nick: nk }) };
       });
       setCode(''); setAdding(false); setResumeId(''); clearCodeFromUrl();
       setBusy(false);
@@ -155,7 +168,7 @@ function CloudCard(): React.ReactElement | null {
       const rest = s.others || [];
       if (!rest.length) return { ...s, cloud: null, members: [], polls: [], others: [] };
       const g = rest[0];
-      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId }, members: g.members, polls: g.polls, others: rest.slice(1) };
+      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick }, members: g.members, polls: g.polls, others: rest.slice(1) };
     });
     reportErr('');
   };
@@ -172,26 +185,26 @@ function CloudCard(): React.ReactElement | null {
           <Text style={{ color: t.ink2, fontSize: 12 }}>초대 코드 (한글 가능, 직접 바꿔도 됩니다)</Text>
           <TextInput value={newCodeText} onChangeText={(v: string) => setNewCodeText(v)} maxLength={12} autoCapitalize="none" placeholderTextColor={t.ink2} style={field} />
           <Btn small ghost label="다른 코드 추천받기" onPress={() => setNewCodeText(genCode())} />
-          {state.cloud ? null : (
-            <View style={{ gap: 8 }}>
-              <Text style={{ color: t.ink2, fontSize: 12 }}>내 별명</Text>
-              <TextInput value={nick} onChangeText={(v: string) => setNick(v)} maxLength={12} placeholderTextColor={t.ink2} style={field} />
-            </View>
-          )}
+          <View style={{ gap: 8 }}>
+            <Text style={{ color: t.ink2, fontSize: 12 }}>{state.cloud ? '이 소모임에서 쓸 내 별명' : '내 별명'}</Text>
+            <TextInput value={nick} onChangeText={(v: string) => setNick(v)} maxLength={12} placeholderTextColor={t.ink2} style={field} />
+          </View>
           <Hint>내 근무 기준: {state.configured ? state.team + '팀 (설정 탭에서 바꿀 수 있음)' : '설정 탭에서 내 팀과 오늘 상태를 먼저 고르세요.'}</Hint>
         </View>
       ) : (
         <View style={{ gap: 8 }}>
           <Text style={{ color: t.ink2, fontSize: 12 }}>초대 코드</Text>
           <TextInput value={code} onChangeText={(v: string) => { setCode(v); setResumeId(''); }} maxLength={12} autoCapitalize="none" placeholderTextColor={t.ink2} style={field} />
-          {state.cloud ? null : (
-            <View style={{ gap: 8 }}>
-              <Text style={{ color: t.ink2, fontSize: 12 }}>내 별명</Text>
-              <TextInput value={nick} onChangeText={(v: string) => { setNick(v); setResumeId(''); }} maxLength={12} placeholderTextColor={t.ink2} style={field} />
-              <Text style={{ color: t.ink2, fontSize: 12 }}>내 팀</Text>
-              <SegRow<number> options={[{ v: 1, label: '1팀' }, { v: 2, label: '2팀' }, { v: 3, label: '3팀' }]} value={team} onChange={setTeam} />
-            </View>
-          )}
+          <View style={{ gap: 8 }}>
+            <Text style={{ color: t.ink2, fontSize: 12 }}>{state.cloud ? '이 소모임에서 쓸 내 별명' : '내 별명'}</Text>
+            <TextInput value={nick} onChangeText={(v: string) => { setNick(v); setResumeId(''); }} maxLength={12} placeholderTextColor={t.ink2} style={field} />
+            {state.cloud ? null : (
+              <View style={{ gap: 8 }}>
+                <Text style={{ color: t.ink2, fontSize: 12 }}>내 팀</Text>
+                <SegRow<number> options={[{ v: 1, label: '1팀' }, { v: 2, label: '2팀' }, { v: 3, label: '3팀' }]} value={team} onChange={setTeam} />
+              </View>
+            )}
+          </View>
         </View>
       )}
       {err ? <Hint bad>{err}</Hint> : null}
@@ -222,6 +235,12 @@ function CloudCard(): React.ReactElement | null {
           <Text style={{ color: t.ink2, fontSize: 12 }}>{c.name} · 초대 코드</Text>
           <Text selectable style={{ color: t.ink, fontSize: 26, fontWeight: '700', letterSpacing: 1 }}>{c.code}</Text>
           <Hint>이 코드를 동료에게 알려 주세요. 코드로 들어와 별명과 팀만 입력하면 됩니다. 아래의 멤버·쉬는 날·투표는 지금 고른 소모임 기준입니다.</Hint>
+          <Text style={{ color: t.ink2, fontSize: 12 }}>이 소모임에서 쓰는 내 별명</Text>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <TextInput value={myNick} onChangeText={(v: string) => { setMyNick(v); setNickMsg(''); }} maxLength={12} placeholderTextColor={t.ink2} style={[field, { flex: 1 }]} />
+            <Btn small label="변경" disabled={!myNick.trim() || myNick.trim() === curNick} onPress={renameMe} />
+          </View>
+          {nickMsg ? <Hint bad={nickMsg.indexOf('변경했') < 0}>{nickMsg}</Hint> : null}
           {netErr ? <Hint bad>{netErr}</Hint> : null}
           {note ? <Hint>{note}</Hint> : null}
           <View style={{ flexDirection: 'row', gap: 8 }}>

@@ -42,6 +42,8 @@ export interface CloudInfo {
   code: string;
   name: string;
   myId: string;
+  /** 이 소모임에서 쓰는 내 별명 (없으면 기본 별명 nick) */
+  nick?: string;
 }
 
 /** 내가 들어가 있는 소모임 하나의 캐시 (지금 보고 있지 않은 소모임) */

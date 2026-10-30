@@ -85,13 +85,13 @@ export async function fetchTeam(code: string, myId: string): Promise<{ members: 
   return { members, polls, meStillThere: mrows.some((m) => m.id === myId) };
 }
 
-export function myProfile(st: AppState, since: string): { name: string; team: number; anchor: string; ex: Record<string, string> } | null {
+export function myProfile(st: AppState, since: string, nick?: string): { name: string; team: number; anchor: string; ex: Record<string, string> } | null {
   if (!st.cloud) return null;
   const ex: Record<string, string> = {};
   Object.keys(st.ex).forEach((k) => { if (k >= since) ex[k] = st.ex[k].type; });
   ex._p = encPattern(st.pattern, st.anchor);
   if (st.pattern.t === 'manual') Object.keys(st.manual).forEach((k) => { if (k >= since) ex['b:' + k] = st.manual[k]; });
-  return { name: st.nick || '나', team: st.team, anchor: st.anchor, ex };
+  return { name: nick || st.nick || '나', team: st.team, anchor: st.anchor, ex };
 }
 
 /** 한글 초대 코드 추천: 예) 용감한호랑이27 */
