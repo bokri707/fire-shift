@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "소방 교대달력",
+    "slug": "fire-shift",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "predictiveBackGestureEnabled": false,
+      "package": "kr.fireshift.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "소방 교대달력",
+      "shortName": "교대달력",
+      "lang": "ko",
+      "themeColor": "#1E4B6B",
+      "backgroundColor": "#EEF2F6"
+    }
+  }
+}

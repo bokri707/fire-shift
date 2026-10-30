@@ -1,0 +1,11 @@
+[build]
+  command = "npm install && npx expo install react-dom react-native-web @expo/metro-runtime && npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
