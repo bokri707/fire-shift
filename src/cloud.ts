@@ -85,6 +85,43 @@ export async function fetchTeam(code: string, myId: string): Promise<{ members: 
   return { members, polls, meStillThere: mrows.some((m) => m.id === myId) };
 }
 
+const mapTeam = (r: { members: MemberRow[]; polls: PollRow[]; votes: VoteRow[] }, myId: string): { members: Member[]; polls: Poll[]; meStillThere: boolean } => {
+  const mrows = r.members || [];
+  const prows = r.polls || [];
+  const vrows = r.votes || [];
+  const polls: Poll[] = prows.map((p) => ({ id: p.id, title: p.title, dates: p.dates, final: p.final, at: Date.parse(p.created_at) || 0, votes: {} }));
+  const byId: Record<string, Poll> = {};
+  polls.forEach((p) => { byId[p.id] = p; });
+  vrows.forEach((v) => {
+    const p = byId[v.poll_id];
+    if (p) p.votes[v.member_id === myId ? 'me' : v.member_id] = v.dates;
+  });
+  const members: Member[] = mrows.filter((m) => m.id !== myId).map((m) => ({ id: m.id, name: m.name, team: m.team, ex: m.ex || {} }));
+  return { members, polls, meStillThere: mrows.some((m) => m.id === myId) };
+};
+
+/** 서버 함수 fetch_team_v2가 아직 없으면(SQL 미적용) true. 이 경우 예전 방식으로 대신 받습니다. */
+let noV2 = false;
+
+/**
+ * 바뀐 게 없으면 데이터를 내려받지 않습니다. prevHash는 지난번에 받은 해시(없으면 '').
+ * 바뀌지 않았으면 null, 바뀌었으면 새 데이터와 해시를 돌려줍니다.
+ */
+export async function fetchTeamIfChanged(code: string, myId: string, prevHash: string): Promise<{ hash: string; data: { members: Member[]; polls: Poll[]; meStillThere: boolean } } | null> {
+  if (!noV2) {
+    try {
+      const r = (await rpc('fetch_team_v2', { p_code: code, p_hash: prevHash })) as { same: boolean; hash: string; data?: { members: MemberRow[]; polls: PollRow[]; votes: VoteRow[] } };
+      if (r.same) return null;
+      return { hash: r.hash, data: mapTeam(r.data || { members: [], polls: [], votes: [] }, myId) };
+    } catch (e) {
+      // 함수가 없을 때(404/PGRST202)만 예전 방식으로 전환. 그 외 오류(네트워크 등)는 그대로 던집니다.
+      if (!/PGRST202|404/.test(String(e))) throw e;
+      noV2 = true;
+    }
+  }
+  return { hash: '', data: await fetchTeam(code, myId) };
+}
+
 export function myProfile(st: AppState, since: string, nick?: string): { name: string; team: number; anchor: string; ex: Record<string, string> } | null {
   if (!st.cloud) return null;
   const ex: Record<string, string> = {};
