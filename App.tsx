@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StatusBar as RNStatusBar, Text, View } from 'react-native';
+import AdBanner from './src/AdBanner';
 import CalendarScreen from './src/screens/CalendarScreen';
 import CloudSync from './src/CloudSync';
 import DutyNotifier from './src/DutyNotifier';
@@ -55,6 +56,7 @@ function Shell(): React.ReactElement {
         <View style={{ flex: 1, display: tab === 'team' ? 'flex' : 'none' }}><TeamScreen /></View>
         <View style={{ flex: 1, display: tab === 'set' ? 'flex' : 'none' }}><SettingsScreen onDone={() => setTab('cal')} /></View>
       </View>
+      <AdBanner />
     </KeyboardAvoidingView>
   );
 }
