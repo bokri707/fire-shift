@@ -27,10 +27,20 @@ export default function CalendarScreen(): React.ReactElement {
   const rows = ledger(state);
   const meets = allMeets(state).filter((p) => p.final >= today).sort((a, b) => (a.final < b.final ? -1 : 1));
   const many = hasManyGroups(state);
+  const soon = meets.filter((m) => idx(m.final) - idx(today) <= 1);
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       {!state.configured || showSetup ? <SetupCard onDone={() => setShowSetup(false)} /> : null}
+      {soon.length ? (
+        <Card style={{ gap: 4, borderWidth: 2, borderColor: t.meet }}>
+          {soon.map((m) => (
+            <Text key={m.id} style={{ color: t.meet, fontSize: 16, fontWeight: '700' }}>
+              {idx(m.final) === idx(today) ? '오늘' : '내일'} 모임 · {many ? m.group + ' · ' : ''}{m.title}
+            </Text>
+          ))}
+        </Card>
+      ) : null}
       <Card style={{ gap: 4 }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
           <Text style={{ color: t.ink, fontSize: 18, fontWeight: '700' }}>오늘 {tp[1]}월 {tp[2]}일 {WD[wdOf(today)]}요일</Text>

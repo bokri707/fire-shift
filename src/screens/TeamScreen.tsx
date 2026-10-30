@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
 import { WD, firstChar, fmt, fromIdx, idx, parse, wdOf } from '../lib/date';
 import { LBL, Person, decPattern, isThree, mEff, mFree, manualFromEx, meetDays, roster, teamBase } from '../lib/shift';
+import { downloadIcs, meetIcs } from '../lib/ics';
 import { clearCodeFromUrl, codeFromUrl, inviteLink } from '../lib/link';
 import { cloudConfigured, createTeam, deleteMember, deletePoll, fetchTeam, genCode, getTeam, insertPoll, normCode, updatePoll, upsertVote, validCode } from '../cloud';
 import { AppState, CloudInfo, Poll } from '../types';
@@ -580,7 +581,8 @@ function PollView({ pid }: { pid: string }): React.ReactElement | null {
         </View>
         <Hint>가능 표시 {fv.length}명{fv.length ? ' (' + fv.map(nm).join(', ') + ')' : ''}{rest.length ? ' · 표시 안 함 ' + rest.map(nm).join(', ') : ''}</Hint>
         {hard.length ? <Hint bad>근무 일정상 어려운 사람: {hard.map(nm).join(', ')}</Hint> : null}
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {Platform.OS === 'web' ? <Btn small label="내 캘린더에 알림과 함께 추가" onPress={() => { downloadIcs('모임-' + poll.final + '.ics', meetIcs(poll.id, poll.title, state.cloud ? state.cloud.name : '', poll.final)); }} /> : null}
           <Btn small ghost label="다시 열기" onPress={() => setFinal('')} />
           <Btn small ghost label={armed ? '한 번 더 눌러 삭제' : '투표 삭제'} onPress={del} />
         </View>
