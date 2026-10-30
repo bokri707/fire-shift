@@ -10,16 +10,27 @@
     },
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "kr.fireshift.app"
+      "package": "kr.fireshift.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1E4B6B"
+      }
     },
     "web": {
       "bundler": "metro",
       "output": "single",
       "name": "소방 교대달력",
-      "shortName": "교대달력",
+      "shortName": "소방 교대달력",
       "lang": "ko",
       "themeColor": "#1E4B6B",
-      "backgroundColor": "#EEF2F6"
+      "backgroundColor": "#EEF2F6",
+      "favicon": "./assets/icon.png"
+    },
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E4B6B"
     }
   }
 }
