@@ -3,6 +3,7 @@ import {
   KeyboardAvoidingView, LayoutChangeEvent, Modal, Platform, Pressable, ScrollView, Text, TextInput, View,
 } from 'react-native';
 import { WD, fmt, idx, parse, wdOf } from '../lib/date';
+import { downloadIcs, dutyIcs } from '../lib/ics';
 import { holName } from '../lib/holidays';
 import { LBL, OFF_LABELS, WORK_LABELS, allMeets, dutyTeam, eff, hasManyGroups, isThree, ledger, nextDuty, posOf } from '../lib/shift';
 import MonthCalendar from '../MonthCalendar';
@@ -99,6 +100,14 @@ export default function CalendarScreen(): React.ReactElement {
           </View>
         ))}
       </Card>
+
+      {Platform.OS === 'web' ? (
+        <Card style={{ gap: 10 }}>
+          <H2>근무 알림</H2>
+          <Hint>앞으로 60일 중 내 근무일을 폰 캘린더에 넣고, 근무 전날 저녁 9시에 알려줍니다. 근무표나 맞교대를 바꾸면 다시 받아서 열어 주세요.</Hint>
+          <Btn small label="내 캘린더에 근무 알림 추가" onPress={() => { downloadIcs('근무알림.ics', dutyIcs(state, today, 60)); }} />
+        </Card>
+      ) : null}
 
       <Text style={{ color: t.ink2, fontSize: 12, lineHeight: 18 }}>
         기록은 이 폰 안에만 저장됩니다. 기관 근무 규정과 다를 수 있으니 실제 근무표와 함께 확인하세요.

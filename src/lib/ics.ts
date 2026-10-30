@@ -1,6 +1,8 @@
+import { AppState } from '../types';
 import { iso as mkIso, fromIdx, idx, parse } from './date';
+import { eff } from './shift';
 
-const esc = (s: string): string => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const esc = (s: string): string => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 const ymd = (s: string): string => s.replace(/-/g, '');
 
 /** 확정된 모임 하나를 캘린더 파일(.ics) 내용으로 만듭니다. 전날 오전 9시, 당일 오전 8시에 알림이 울리도록 넣습니다. */
@@ -23,6 +25,36 @@ export function meetIcs(id: string, title: string, group: string, day: string): 
     'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc('오늘 모임: ' + name), 'TRIGGER:PT8H', 'END:VALARM',
     'END:VEVENT', 'END:VCALENDAR',
   ];
+  return lines.join('\r\n') + '\r\n';
+}
+
+/**
+ * 내 근무일(앞으로 days일)을 캘린더 파일(.ics)로 만듭니다.
+ * 근무하는 날마다 일정이 하나씩 생기고, 전날 저녁 9시에 "내일 근무" 알림이 울립니다.
+ * 같은 날짜는 같은 UID라서, 다시 가져오면 중복 없이 갱신됩니다. (근무가 사라진 날의 옛 일정은 직접 지워야 합니다.)
+ */
+export function dutyIcs(st: AppState, today: string, days: number): string {
+  const now = new Date();
+  const stamp = mkIso(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate()).replace(/-/g, '') + 'T000000Z';
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//fire-shift//KO', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  const start = idx(today) + 1;
+  for (let i = start; i < start + days; i++) {
+    const d = fromIdx(i);
+    const e = eff(st, d);
+    if (!e.works) continue;
+    const name = '근무 ' + e.label + (e.kind === 'swap' ? ' (맞교대)' : '');
+    lines.push(
+      'BEGIN:VEVENT',
+      'UID:duty-' + d + '@fire-shift',
+      'DTSTAMP:' + stamp,
+      'DTSTART;VALUE=DATE:' + ymd(d),
+      'DTEND;VALUE=DATE:' + ymd(fromIdx(i + 1)),
+      'SUMMARY:' + esc(name),
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc('내일 ' + name), 'TRIGGER:-PT3H', 'END:VALARM',
+      'END:VEVENT',
+    );
+  }
+  lines.push('END:VCALENDAR');
   return lines.join('\r\n') + '\r\n';
 }
 
