@@ -2,7 +2,6 @@
   "expo": {
     "name": "소방 교대달력",
     "slug": "fire-shift",
-    "plugins": [["react-native-google-mobile-ads", {"androidAppId": "ca-app-pub-3940256099942544~3347511713", "iosAppId": "ca-app-pub-3940256099942544~1458002511"}]],
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
