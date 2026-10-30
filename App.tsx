@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StatusBar as RNStatusBar, Text, View } from 'react-native';
 import CalendarScreen from './src/screens/CalendarScreen';
 import CloudSync from './src/CloudSync';
+import DutyNotifier from './src/DutyNotifier';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TeamScreen from './src/screens/TeamScreen';
 import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
@@ -25,6 +26,7 @@ function Shell(): React.ReactElement {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: t.bg, paddingTop: top }}>
       <CloudSync tab={tab} />
+      <DutyNotifier />
       <StatusBar style={t.dark ? 'light' : 'dark'} />
       {kakao ? (
         <Pressable onPress={openInExternalBrowser} style={{ backgroundColor: t.accent, paddingVertical: 10, paddingHorizontal: 18 }}>
