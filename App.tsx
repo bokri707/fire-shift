@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StatusBar as RNStatusBar, Text, View } from 'react-native';
 import CalendarScreen from './src/screens/CalendarScreen';
 import CloudSync from './src/CloudSync';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TeamScreen from './src/screens/TeamScreen';
-import { codeFromUrl } from './src/lib/link';
+import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
 import { StoreProvider } from './src/store';
 import { useTheme } from './src/theme';
 
@@ -19,10 +19,17 @@ const TABS: { v: Tab; label: string }[] = [
 function Shell(): React.ReactElement {
   const t = useTheme();
   const [tab, setTab] = useState<Tab>(codeFromUrl() ? 'team' : 'cal');
+  useEffect(() => { if (Platform.OS === 'web') autoLeaveKakao(); }, []);
+  const kakao = Platform.OS === 'web' && inKakaoBrowser();
   const top = Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 24) : 52;
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: t.bg, paddingTop: top }}>
       <StatusBar style={t.dark ? 'light' : 'dark'} />
+      {kakao ? (
+        <Pressable onPress={openInExternalBrowser} style={{ backgroundColor: t.accent, paddingVertical: 10, paddingHorizontal: 18 }}>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>카카오톡 안에서는 정보가 사라질 수 있어요. 눌러서 크롬(기본 브라우저)으로 열기 ›</Text>
+        </Pressable>
+      ) : null}
       <View style={{ paddingHorizontal: 18, paddingTop: 6 }}>
         <Text style={{ color: t.ink2, fontSize: 12 }}>당 · 비 · 비</Text>
         <Text style={{ color: t.ink, fontSize: 26, fontWeight: '700' }}>소방 교대달력</Text>
