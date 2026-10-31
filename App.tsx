@@ -5,7 +5,6 @@ import AdBanner from './src/AdBanner';
 import CalendarScreen from './src/screens/CalendarScreen';
 import CloudSync from './src/CloudSync';
 import DutyNotifier from './src/DutyNotifier';
-import PairScreen from './src/screens/PairScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TeamScreen from './src/screens/TeamScreen';
 import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
@@ -16,12 +15,11 @@ import { StoreProvider, focusKind, groupKind, useStore } from './src/store';
 import { useTheme } from './src/theme';
 
 const NAVY = '#1E4B6B';
-type Tab = 'cal' | 'team' | 'meet' | 'pair' | 'set';
+type Tab = 'cal' | 'team' | 'meet' | 'set';
 const TABS: { v: Tab; label: string }[] = [
   { v: 'cal', label: '달력' },
   { v: 'team', label: '팀' },
   { v: 'meet', label: '모임' },
-  { v: 'pair', label: '부부·육아' },
   { v: 'set', label: '설정' },
 ];
 
@@ -35,8 +33,7 @@ function Shell(): React.ReactElement {
   const groups = (state.cloud ? [state.cloud] : []).concat(state.others || []);
   const teamShown = state.teamOn === true || groups.some((g) => groupKind(g) === 'team') || !!codeFromUrl();
   const meetShown = state.meetOn === true || groups.some((g) => groupKind(g) === 'meet');
-  const pairShown = state.pairOn === true;
-  const shown = TABS.filter((x) => x.v === 'cal' || x.v === 'set' || (x.v === 'team' && teamShown) || (x.v === 'meet' && meetShown) || (x.v === 'pair' && pairShown));
+  const shown = TABS.filter((x) => x.v === 'cal' || x.v === 'set' || (x.v === 'team' && teamShown) || (x.v === 'meet' && meetShown));
   const cur: Tab = shown.some((x) => x.v === tab) ? tab : 'cal';
 
   // 사용 횟수 (합계만): 앱을 열 때, 탭을 볼 때
@@ -102,7 +99,6 @@ function Shell(): React.ReactElement {
         <View style={{ flex: 1, display: cur === 'cal' ? 'flex' : 'none' }}><CalendarScreen /></View>
         <View style={{ flex: 1, display: cur === 'team' ? 'flex' : 'none' }}><TeamScreen kind="team" /></View>
         <View style={{ flex: 1, display: cur === 'meet' ? 'flex' : 'none' }}><TeamScreen kind="meet" /></View>
-        <View style={{ flex: 1, display: cur === 'pair' ? 'flex' : 'none' }}><PairScreen /></View>
         <View style={{ flex: 1, display: cur === 'set' ? 'flex' : 'none' }}><SettingsScreen onDone={() => go('cal')} /></View>
       </View>
       <AdBanner />

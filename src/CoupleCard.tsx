@@ -5,7 +5,7 @@ import { WD, daysInMonth, firstWd, fromIdx, idx, iso, parse } from './lib/date';
 import { deletePoll, insertPoll, updatePoll } from './cloud';
 import { EV_COLOR, eventTitle, eventsByDate, parseEvent } from './lib/events';
 import { MEff, Person, mEff, roster } from './lib/shift';
-import { markWrite, newId, pairGroupCode, switchGroup, useStore } from './store';
+import { markWrite, newId, useStore } from './store';
 import { Poll } from './types';
 import { kindColors, useTheme } from './theme';
 import { Btn, Card, H2, Hint } from './ui';
@@ -108,81 +108,8 @@ function dayText(e: MEff): string {
   return parts.join(' · ');
 }
 
-interface ViewProps { me: Person; others: Person[]; today: string; y: number; m: number }
-
-/** 나와 배우자(같은 소모임 동료)의 근무를 한 달력에 겹쳐 봅니다. */
-function PairView({ me, others, today, y, m }: ViewProps): React.ReactElement {
-  const t = useTheme();
-  const { state } = useStore();
-  const [pid, setPid] = useState<string>('');
-  const [sel, setSel] = useState<string>('');
-  const partner = others.find((x) => x.id === pid) || others[0];
-  const first = firstWd(y, m);
-  const n = daysInMonth(y, m);
-  const cells: React.ReactElement[] = [];
-  let both = 0;
-  for (let i = 0; i < first; i++) cells.push(<View key={'b' + i} style={{ flex: 1 }} />);
-  for (let d = 1; d <= n; d++) {
-    const s = iso(y, m, d);
-    const a = mEff(me, s);
-    const b = mEff(partner, s);
-    const bothWork = a.works && b.works;
-    if (bothWork) both++;
-    const isToday = s === today;
-    const wd = (first + d - 1) % 7;
-    cells.push(
-      <Pressable key={s} onPress={() => setSel(sel === s ? '' : s)} accessibilityRole="button" style={{ flex: 1, minHeight: 82, gap: 3, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s ? 2 : 1, borderColor: sel === s ? t.accent : isToday ? t.ink : t.line, backgroundColor: bothWork ? BOTH : t.surface }}>
-        <Text style={{ fontSize: 12, fontWeight: '700', color: wd === 0 ? t.sun : wd === 6 ? t.sat : t.ink, paddingLeft: 2 }}>{d}</Text>
-        <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>
-          {visible(a) ? <Mark e={a} color={t.duty} /> : null}
-          {visible(b) ? <Mark e={b} color={PARTNER} /> : null}
-        </View>
-      </Pressable>,
-    );
-  }
-  // 누른 날짜가 지금 보는 달이 아니면 상세 패널을 닫습니다.
-  const sp = sel ? parse(sel) : null;
-  const selDate = sp && sp[0] === y && sp[1] === m ? sel : '';
-  const selD = sp ? sp[2] : 0;
-  const mine = selDate ? state.ex[selDate] : undefined;
-  return (
-    <>
-      {others.length > 1 ? <Chips items={others.map((x) => ({ id: x.id, label: x.name }))} value={partner.id} onPick={setPid} /> : null}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        <Dot color={t.duty} label="나" />
-        <Dot color={PARTNER} label={partner.name} />
-        <Dot color={BOTH} label="둘 다 근무 (위아래로 같이 표시)" square />
-      </View>
-      <Weeks cells={cells} />
-      {selDate ? (
-        <View style={{ gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: t.line, backgroundColor: t.surface }}>
-          <Text style={{ color: t.ink, fontSize: 15, fontWeight: '700' }}>{m}월 {selD}일 ({WD[(first + selD - 1) % 7]})</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.duty }} />
-            <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}><Text style={{ fontWeight: '700' }}>{me.name}</Text>  {dayText(mEff(me, selDate))}</Text>
-          </View>
-          {mine && (mine.who || mine.memo) ? (
-            <Text style={{ color: t.ink2, fontSize: 13, paddingLeft: 20 }}>
-              {mine.who ? '맞교대 상대: ' + mine.who : ''}{mine.who && mine.memo ? ' · ' : ''}{mine.memo ? '메모: ' + mine.memo : ''}
-            </Text>
-          ) : null}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: PARTNER }} />
-            <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}><Text style={{ fontWeight: '700' }}>{partner.name}</Text>  {dayText(mEff(partner, selDate))}</Text>
-          </View>
-          <Hint>메모는 쓴 사람의 폰에만 저장되어, 상대가 적은 메모는 여기서 볼 수 없습니다.</Hint>
-        </View>
-      ) : null}
-      <Text style={{ color: t.ink, fontSize: 13 }}>
-        둘 다 근무하는 날 <Text style={{ fontWeight: '700', color: t.duty }}>{both}일</Text>
-      </Text>
-      <Hint>날짜 칸을 누르면 그날 내용이 아래에 나옵니다. 한 사람만 근무하는 날은 칸 가운데에 그 사람 색으로 하나만 보입니다. 붉은색은 나, 남색은 {partner.name}입니다. 둘 다 근무하는 날은 노란 칸에 위(나)·아래(상대)로 함께 나옵니다. 교육·연가가 겹쳐도 위아래로 같이 보입니다. 주황색 육은 육아시간을 쓴 날입니다. 당 앞의 육은 출근 때, 당 뒤의 육은 퇴근 때, 앞뒤 모두 있으면 둘 다 쓴 것입니다.</Hint>
-    </>
-  );
-}
-
 /** 우리 팀(같은 팀 번호) 사람들 중 근무에서 빠지는 인원(연가·교육·파견·기타)을 날짜별로 세어, 한도(총 인원의 1/3)를 넘는지 보여줍니다. */
-function TeamView({ all, today, y, m, code, myId, polls, plan }: { all: Person[]; today: string; y: number; m: number; code: string; myId: string; polls: Poll[]; plan: boolean }): React.ReactElement {
+function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all: Person[]; today: string; y: number; m: number; code: string; myId: string; polls: Poll[]; plan: boolean; partner?: Person }): React.ReactElement {
   const t = useTheme();
   const { update, reportErr } = useStore();
   const ev = eventsByDate(polls);
@@ -306,12 +233,21 @@ function TeamView({ all, today, y, m, code, myId, polls, plan }: { all: Person[]
     const isOver = L > limit;
     const full = !isOver && L > 0 && L === limit;
     if (isOver) over++;
-    const bg = !plan ? t.surface : isOver ? t.duty : full ? '#FFE9A8' : L > 0 ? '#DCEFE6' : N > 0 ? '#EEF1F4' : t.surface;
+    const pa = partner ? mEff(meP, s) : null;
+    const pb = partner ? mEff(partner, s) : null;
+    const bothWork = !!(pa && pb && pa.works && pb.works);
+    const bg = partner ? (bothWork ? BOTH : t.surface) : !plan ? t.surface : isOver ? t.duty : full ? '#FFE9A8' : L > 0 ? '#DCEFE6' : N > 0 ? '#EEF1F4' : t.surface;
     const fg = isOver ? '#fff' : full ? '#7A5300' : t.leave;
     cells.push(
       <Pressable key={s} onPress={() => setSel(s)} style={{ flex: 1, minHeight: 80, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s ? 2 : 1, borderColor: sel === s ? t.accent : isToday ? t.ink : t.line, backgroundColor: bg }}>
         <Text style={{ fontSize: 12, fontWeight: '700', color: isOver ? '#fff' : wd === 0 ? t.sun : wd === 6 ? t.sat : t.ink, paddingLeft: 2 }}>{d}</Text>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        {partner ? (
+          <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>
+            {pa && visible(pa) ? <Mark e={pa} color={t.duty} /> : null}
+            {pb && visible(pb) ? <Mark e={pb} color={PARTNER} /> : null}
+          </View>
+        ) : null}
+        <View style={{ flex: partner ? 0 : 1, alignItems: 'center', justifyContent: 'center' }}>
           {plan && L > 0 ? <Text style={{ fontSize: 14, fontWeight: '800', color: fg }}>{L}/{limit}</Text> : null}
           {plan && isOver ? <Text style={{ fontSize: 10, fontWeight: '800', color: '#fff' }}>보강</Text> : null}
         </View>
@@ -346,6 +282,13 @@ function TeamView({ all, today, y, m, code, myId, polls, plan }: { all: Person[]
         <Dot color="#FFE9A8" label="한도 도달" square />
         <Dot color={t.duty} label="한도 초과 · 보강" square />
       </View> : null}
+      {partner ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <Dot color={t.duty} label="나" />
+          <Dot color={PARTNER} label={partner.name} />
+          <Dot color={BOTH} label="둘 다 근무" square />
+        </View>
+      ) : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <Dot color={EV_COLOR.plain} label={plan ? '팀 일정' : '일정'} square />
         <Dot color={EV_COLOR.meet} label="확정된 모임" square />
@@ -362,6 +305,19 @@ function TeamView({ all, today, y, m, code, myId, polls, plan }: { all: Person[]
         </View>
       </View> : null}
       <Weeks cells={cells} />
+      {partner && sel && sp ? (
+        <View style={{ gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: t.line, backgroundColor: t.surface }}>
+          <Text style={{ color: t.ink, fontSize: 15, fontWeight: '700' }}>{sp[1]}월 {sp[2]}일 근무</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.duty }} />
+            <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}><Text style={{ fontWeight: '700' }}>{meP.name}</Text>  {dayText(mEff(meP, sel))}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: PARTNER }} />
+            <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}><Text style={{ fontWeight: '700' }}>{partner.name}</Text>  {dayText(mEff(partner, sel))}</Text>
+          </View>
+        </View>
+      ) : null}
       {plan && si && sp ? (
         <View style={{ borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, gap: 4 }}>
           <Text style={{ color: t.ink, fontSize: 14, fontWeight: '700' }}>{sp[1]}월 {sp[2]}일 · {si.N === 0 ? '이 팀은 근무하지 않는 날' : '근무 대상 ' + si.N + '명 중 ' + si.L + '명 빠짐'}</Text>
@@ -439,7 +395,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan }: { all: Person[]
         </View>
       ) : null}
       {plan ? <Text style={{ color: t.ink, fontSize: 13 }}>이 달 한도 초과(보강 필요) <Text style={{ fontWeight: '700', color: t.duty }}>{over}일</Text></Text> : null}
-      {plan ? <Hint>칸의 숫자는 "빠지는 인원 / 한도 인원"입니다. 연가·병가·교육·파견·기타로 근무에서 빠지는 사람을 모두 셉니다. 한도는 총 인원의 3분의 1(소수점은 버림)로 계산합니다. 소모임에 들어와 달력에 기록한 사람만 셀 수 있으니, 팀 총 인원은 실제 인원에 맞춰 + − 로 고쳐 주세요. 팀원끼리 계획을 미리 입력해 서로 보면서 조율하는 용도입니다.</Hint> : <Hint>모임 일정은 같은 소모임에 들어온 사람 모두에게 보입니다. 모임 날짜를 투표로 정하려면 "모임·투표"를 쓰세요.</Hint>}
+      {plan ? <Hint>칸의 숫자는 "빠지는 인원 / 한도 인원"입니다. 연가·병가·교육·파견·기타로 근무에서 빠지는 사람을 모두 셉니다. 한도는 총 인원의 3분의 1(소수점은 버림)로 계산합니다. 소모임에 들어와 달력에 기록한 사람만 셀 수 있으니, 팀 총 인원은 실제 인원에 맞춰 + − 로 고쳐 주세요. 팀원끼리 계획을 미리 입력해 서로 보면서 조율하는 용도입니다.</Hint> : <Hint>{partner ? '붉은색은 나, 남색은 ' + partner.name + '입니다. 둘 다 근무하는 날은 노란 칸에 위(나)·아래(상대)로 함께 나옵니다. 칸의 육은 육아시간이고, 당 앞은 출근 때, 당 뒤는 퇴근 때입니다. 일정은 소모임 모두에게 보입니다. ' : '모임 일정은 같은 소모임에 들어온 사람 모두에게 보입니다. '}모임 날짜를 투표로 정하려면 "모임·투표"를 쓰세요.</Hint>}
     </>
   );
 }
@@ -485,37 +441,6 @@ function useMonth(startOffset: number): { view: { y: number; m: number }; move: 
   return { view, move, swipe: { ...pan.panHandlers, style: webTouch } };
 }
 
-/** 부부 탭: 나와 배우자의 근무·육아시간을 한 달력에 */
-export function PairCard(): React.ReactElement | null {
-  const { state: real, today } = useStore();
-  const { view, move, swipe } = useMonth(0);
-  if (!real.cloud) return (
-    <Card style={{ gap: 10 }}>
-      <H2>부부·육아시간 함께 보기</H2>
-      <Hint>먼저 팀 또는 모임 탭에서 소모임을 만들거나 코드로 들어오세요. 배우자도 같은 소모임에 들어오면 두 사람의 근무와 육아시간을 한 달력에서 볼 수 있습니다.</Hint>
-    </Card>
-  );
-  // 어느 탭을 보고 있든, 부부·육아 탭은 설정에서 정한(또는 자동으로 고른) 소모임에서 배우자를 찾습니다.
-  const useCode = pairGroupCode(real);
-  const state = switchGroup(real, useCode);
-  const ms = roster(state);
-  const me = ms.find((x) => x.isMe) as Person;
-  const others = ms.filter((x) => !x.isMe);
-  return (
-    <Card style={{ gap: 10 }}>
-      <H2>부부·육아시간 함께 보기</H2>
-      {others.length === 0 ? (
-        <Hint>배우자가 소모임에 들어오면 두 사람의 근무와 육아시간을 한 달력에서 볼 수 있습니다. 팀 또는 모임 탭의 소모임 코드로 초대하고, 어느 소모임에서 찾을지는 설정 탭의 기능 켜기에서 정하세요.</Hint>
-      ) : (
-        <>
-          <MonthNav view={view} move={move} />
-          <View {...swipe}><PairView me={me} others={others} today={today} y={view.y} m={view.m} /></View>
-        </>
-      )}
-    </Card>
-  );
-}
-
 /** 팀·모임 탭: 다음 달 우리 팀 연가계획표 */
 export function TeamLeaveCard(): React.ReactElement | null {
   const { state, today } = useStore();
@@ -524,6 +449,7 @@ export function TeamLeaveCard(): React.ReactElement | null {
   const plan = state.cloud.kind !== 'meet';
   const ms = roster(state);
   const others = ms.filter((x) => !x.isMe);
+  const partner = !plan && state.cloud.pair === true ? others[0] : undefined;
   return (
     <Card style={{ gap: 10 }}>
       <H2>{plan ? '우리 팀 연가계획표' : '모임 일정'}</H2>
@@ -532,7 +458,7 @@ export function TeamLeaveCard(): React.ReactElement | null {
       ) : (
         <>
           <MonthNav view={view} move={move} />
-          <View {...swipe}><TeamView all={ms} today={today} y={view.y} m={view.m} code={state.cloud.code} myId={state.cloud.myId} polls={state.polls} plan={plan} /></View>
+          <View {...swipe}><TeamView all={ms} today={today} y={view.y} m={view.m} code={state.cloud.code} myId={state.cloud.myId} polls={state.polls} plan={plan} partner={partner} /></View>
         </>
       )}
     </Card>

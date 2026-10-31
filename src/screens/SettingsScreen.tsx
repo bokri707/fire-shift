@@ -86,20 +86,13 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
           </View>
           <Switch value={state.meetOn === true || hasMeet} disabled={hasMeet} onValueChange={(v: boolean) => update((s) => ({ ...s, meetOn: v }))} />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: t.ink, fontSize: 15, fontWeight: '600' }}>부부·육아</Text>
-            <Text style={{ color: t.ink2, fontSize: 12 }}>배우자와 근무를 함께 보고 육아시간 확인</Text>
-          </View>
-          <Switch value={state.pairOn === true} onValueChange={(v: boolean) => update((s) => ({ ...s, pairOn: v }))} />
-        </View>
-        {state.pairOn === true && groups.length > 1 ? (
+        {groups.length > 1 ? (
           <View style={{ gap: 6 }}>
-            <Text style={{ color: t.ink2, fontSize: 12 }}>부부·육아 탭이 배우자를 찾을 소모임</Text>
+            <Text style={{ color: t.ink2, fontSize: 12 }}>배우자를 찾을 소모임 (달력에 배우자 육아시간이 파란 점으로 표시)</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               {groups.map((g) => <Chip key={g.code} label={g.name} on={pairGroupCode(state) === g.code} onPress={() => update((s) => ({ ...s, pairCode: g.code }))} />)}
             </View>
-            <Hint>한 번 정하면 팀·모임 탭을 오가도 바뀌지 않습니다. 정하지 않으면 부부(가족)로 표시된 소모임을 자동으로 씁니다.</Hint>
+            <Hint>한 번 정하면 탭을 오가도 바뀌지 않습니다. 정하지 않으면 부부(가족)로 표시된 소모임을 자동으로 씁니다.</Hint>
           </View>
         ) : null}
       </Card>

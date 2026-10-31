@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState as RNAppState } from 'react-native';
 import { fromIdx, idx, todayISO } from './lib/date';
-import { THREE } from './lib/shift';
+import { Person, THREE, roster } from './lib/shift';
 import { AppState } from './types';
 
 const KEY = 'fire-shift-rn-v1';
@@ -59,6 +59,15 @@ export function pairGroupCode(s: AppState): string {
   const picked = gs.find((g) => g.code === s.pairCode);
   const auto = gs.find((g) => g.pair === true) || gs.find((g) => groupKind(g) === 'meet' && g.n > 0) || gs[0];
   return (picked || auto).code;
+}
+
+/** 배우자: 부부(가족)로 표시했거나 설정에서 고른 소모임에서 나를 뺀 첫 번째 사람. 달력에 육아시간을 파란 점으로 보여 줄 때 씁니다. */
+export function spouseOf(s: AppState): Person | undefined {
+  if (!s.cloud) return undefined;
+  const code = pairGroupCode(s);
+  const g = [s.cloud as { code: string; pair?: boolean }].concat((s.others || []) as { code: string; pair?: boolean }[]).find((x) => x.code === code);
+  if (!g || !(g.pair === true || s.pairCode === code)) return undefined;
+  return roster(switchGroup(s, code)).find((x) => !x.isMe);
 }
 
 export type Update = (fn: (s: AppState) => AppState) => void;

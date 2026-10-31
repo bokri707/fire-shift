@@ -290,7 +290,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: t.ink, fontSize: 14, fontWeight: '600' }}>부부(가족) 소모임으로 표시</Text>
-              <Text style={{ color: t.ink2, fontSize: 12 }}>켜면 같은 소모임의 모든 사람에게 적용되고, 부부·육아 탭이 이 소모임에서 배우자를 찾습니다.</Text>
+              <Text style={{ color: t.ink2, fontSize: 12 }}>켜면 같은 소모임의 모든 사람에게 적용됩니다. 달력에 배우자 육아시간이 파란 점으로 보이고, 모임 일정이 두 사람 근무 달력으로 바뀝니다.</Text>
             </View>
             <Switch
               value={c.pair === true}

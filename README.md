@@ -31,9 +31,9 @@ src/cloud.ts            Supabase 호출(RPC)
 src/CloudSync.tsx       서버와 주기적으로 동기화
 src/MonthCalendar.tsx   홈 달력 (스와이프, 팀 일정 점)
 src/SetupCard.tsx       내 근무 설정
-src/CoupleCard.tsx      부부·육아, 연가계획표
+src/CoupleCard.tsx      연가계획표·부부 달력
 src/DutyNotifier.tsx    근무·모임 알림
-src/screens/            달력, 팀·모임, 부부·육아, 설정 화면
+src/screens/            달력, 팀·모임, 설정 화면
 src/lib/                날짜, 근무 계산(shift), 팀 일정(events), 공휴일, 백업, 알림, 링크, 통계(usage)
 supabase/schema.sql     서버 표·함수 정의
 ```

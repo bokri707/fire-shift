@@ -4,12 +4,15 @@ import { WD, daysInMonth, firstWd, iso, parse } from './lib/date';
 import { holName } from './lib/holidays';
 import { GROUP_COLORS, eventsByDate } from './lib/events';
 import { Poll } from './types';
-import { LBL, allMeets, eff, hasManyGroups } from './lib/shift';
-import { useStore } from './store';
+import { LBL, allMeets, eff, hasManyGroups, mEff } from './lib/shift';
+import { spouseOf, useStore } from './store';
 import { kindColors, useTheme } from './theme';
 import { Btn, Card } from './ui';
 
 const GAP = 4;
+/** 육아시간 점: 내 것은 주황, 배우자 것은 파랑 (왼쪽은 출근 때, 오른쪽은 퇴근 때) */
+const CARE_MINE = '#E67E22';
+const CARE_SPOUSE = '#1E88E5';
 
 
 export interface Deco {
@@ -68,6 +71,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
   const hols: { d: number; name: string }[] = [];
   const meets: Record<string, { t: string; g: string }[]> = {};
   const many = hasManyGroups(state);
+  const spouse = spouseOf(state);
   allMeets(state).forEach((p) => { if (!meets[p.final]) meets[p.final] = []; meets[p.final].push({ t: p.title, g: many ? p.group : '' }); });
   // 팀 일정(모임과 별개)은 칸 왼쪽 아래에 작은 색 점으로 표시합니다.
   const grp: { code: string; name: string; polls: Poll[] }[] = [];
@@ -82,6 +86,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
       (evs[d] = evs[d] || []).push({ name: x.name, color: many ? gc : x.color, group: many ? g.name : '', kind: x.kind });
     }));
   });
+  let careAny = false;
   const evNames: { d: number; name: string; color: string; group: string }[] = [];
   const meetList: { d: number; name: string }[] = [];
   for (let i = 0; i < first; i++) cells.push(<View key={'b' + i} style={{ width: cellW, height: 4 }} />);
@@ -102,6 +107,12 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
     const care = e.sub.startsWith('육아');
     const careL = care && (e.sub.includes('출근 때') || e.sub.includes('모두'));
     const careR = care && !e.sub.includes('출근 때');
+    const sc = spouse ? mEff(spouse, s).care : '';
+    const spL = sc === 'in' || sc === 'both';
+    const spR = sc === 'out' || sc === 'both';
+    const dotsL = [careL ? CARE_MINE : '', spL ? CARE_SPOUSE : ''].filter(Boolean);
+    const dotsR = [careR ? CARE_MINE : '', spR ? CARE_SPOUSE : ''].filter(Boolean);
+    if (dotsL.length || dotsR.length) careAny = true;
     const sol = deco && deco.solid ? deco.solid : '';
     const numColor = isToday ? t.surface : sol ? '#FFFFFF' : hn || wk === 0 ? t.sun : wk === 6 ? t.sat : t.ink;
     const borderColor = isToday ? t.ink : sol ? sol : deco && deco.border ? deco.border : mt ? t.meet : hn ? t.hol : t.line;
@@ -130,8 +141,8 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
             fontSize: 12, fontWeight: e.kind === 'off' ? '500' : '700',
             color: e.kind === 'duty' ? t.onDuty : sol ? '#FFFFFF' : e.kind === 'off' ? t.ink2 : c.fg,
           }}>{chipText}</Text>
-          {careL ? <View style={{ position: 'absolute', top: '50%', marginTop: -3, left: -3, width: 6, height: 6, borderRadius: 3, backgroundColor: '#E67E22' }} /> : null}
-          {careR ? <View style={{ position: 'absolute', top: '50%', marginTop: -3, right: -3, width: 6, height: 6, borderRadius: 3, backgroundColor: '#E67E22' }} /> : null}
+          {dotsL.map((c, i) => <View key={'l' + i} style={{ position: 'absolute', top: '50%', marginTop: dotsL.length > 1 ? (i === 0 ? -7 : 1) : -3, left: -3, width: 6, height: 6, borderRadius: 3, backgroundColor: c }} />)}
+          {dotsR.map((c, i) => <View key={'r' + i} style={{ position: 'absolute', top: '50%', marginTop: dotsR.length > 1 ? (i === 0 ? -7 : 1) : -3, right: -3, width: 6, height: 6, borderRadius: 3, backgroundColor: c }} />)}
         </View>
         {mt && !(deco && deco.tag) ? (
           <View style={{ maxWidth: '100%', paddingHorizontal: 4, borderRadius: 4, backgroundColor: t.meet }}>
@@ -176,6 +187,21 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
         })()}
       </View>
       <Text style={{ color: t.ink2, fontSize: 11.5, marginTop: 2 }}>달력을 좌우로 밀면 달이 바뀝니다.</Text>
+      {careAny ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: CARE_MINE }} />
+            <Text style={{ color: t.ink2, fontSize: 12 }}>내 육아시간</Text>
+          </View>
+          {spouse ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: CARE_SPOUSE }} />
+              <Text style={{ color: t.ink2, fontSize: 12 }}>배우자 육아시간</Text>
+            </View>
+          ) : null}
+          <Text style={{ color: t.ink2, fontSize: 12 }}>칩 왼쪽은 출근 때, 오른쪽은 퇴근 때</Text>
+        </View>
+      ) : null}
       {meetList.length ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 }}>
           {meetList.map((h, i) => (
