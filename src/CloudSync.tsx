@@ -7,6 +7,7 @@ import { sync, useStore } from './store';
 /** 화면(탭)별 서버 확인 간격(밀리초). 0이면 확인하지 않습니다. */
 const POLL_MS: Record<string, number> = {
   team: 6000, // 투표·팀원을 보는 화면: 비교적 자주
+  meet: 6000, // 모임 화면도 같음
   cal: 45000, // 달력만 볼 때: 가끔
   pair: 30000, // 부부 달력: 가끔 (배우자 기록이 바뀌었는지)
   set: 0, // 설정 화면: 안 함
@@ -46,14 +47,17 @@ export default function CloudSync({ tab }: { tab: string }): null {
             let next = s;
             changed.forEach(({ g, r }) => {
               hashes.current[g.code] = r.hash;
+              const k = r.data.kind;
               if (next.cloud && next.cloud.code === g.code) {
-                if (JSON.stringify(next.members) === JSON.stringify(r.data.members) && JSON.stringify(next.polls) === JSON.stringify(r.data.polls)) return;
-                next = { ...next, members: r.data.members, polls: r.data.polls };
+                const kindChanged = !!k && next.cloud.kind !== k;
+                if (!kindChanged && JSON.stringify(next.members) === JSON.stringify(r.data.members) && JSON.stringify(next.polls) === JSON.stringify(r.data.polls)) return;
+                next = { ...next, members: r.data.members, polls: r.data.polls, cloud: k ? { ...next.cloud, kind: k } : next.cloud };
               } else if (next.others) {
                 const cur = next.others.find((o) => o.code === g.code);
                 if (!cur) return;
-                if (JSON.stringify(cur.members) === JSON.stringify(r.data.members) && JSON.stringify(cur.polls) === JSON.stringify(r.data.polls)) return;
-                next = { ...next, others: next.others.map((o) => (o.code === g.code ? { ...o, members: r.data.members, polls: r.data.polls } : o)) };
+                const kindChanged = !!k && cur.kind !== k;
+                if (!kindChanged && JSON.stringify(cur.members) === JSON.stringify(r.data.members) && JSON.stringify(cur.polls) === JSON.stringify(r.data.polls)) return;
+                next = { ...next, others: next.others.map((o) => (o.code === g.code ? { ...o, members: r.data.members, polls: r.data.polls, kind: k || o.kind } : o)) };
               }
             });
             return next;

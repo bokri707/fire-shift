@@ -4,7 +4,7 @@ import { applyBackup, makeBackup, readBackup } from '../lib/backup';
 import { useTheme } from '../theme';
 import { notifySupported } from '../lib/notify';
 import { setNotifyPref, useNotifyPref } from '../DutyNotifier';
-import { useStore } from '../store';
+import { groupKind, useStore } from '../store';
 import SetupCard from '../SetupCard';
 import { Btn, Card, Chip, H2, Hint } from '../ui';
 
@@ -17,6 +17,9 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
   const [msg, setMsg] = useState('');
   const [bad, setBad] = useState(false);
   const np = useNotifyPref();
+  const groups = (state.cloud ? [state.cloud] : []).concat(state.others || []);
+  const hasTeam = groups.some((g) => groupKind(g) === 'team');
+  const hasMeet = groups.some((g) => groupKind(g) === 'meet');
   const hasSample = state.members.some((m) => m.sample) || Object.keys(state.ex).some((k) => state.ex[k].sample);
 
   const clearSample = (): void => {
@@ -69,14 +72,17 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
         <Hint>쓰지 않는 기능은 숨겨 두었습니다. 필요한 것만 켜세요. 언제든 끌 수 있고, 꺼도 기록은 지워지지 않습니다.</Hint>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: t.ink, fontSize: 15, fontWeight: '600' }}>팀·모임</Text>
-            <Text style={{ color: t.ink2, fontSize: 12 }}>{state.cloud ? '소모임에 들어가 있어서 켜져 있습니다.' : '동료와 근무 공유, 일정, 모임 투표'}</Text>
+            <Text style={{ color: t.ink, fontSize: 15, fontWeight: '600' }}>팀</Text>
+            <Text style={{ color: t.ink2, fontSize: 12 }}>{hasTeam ? '근무 팀에 들어가 있어서 켜져 있습니다.' : '같은 팀 동료와 근무 공유, 연가계획, 팀 일정'}</Text>
           </View>
-          <Switch
-            value={state.teamOn === true || !!state.cloud}
-            disabled={!!state.cloud}
-            onValueChange={(v: boolean) => update((s) => ({ ...s, teamOn: v }))}
-          />
+          <Switch value={state.teamOn === true || hasTeam} disabled={hasTeam} onValueChange={(v: boolean) => update((s) => ({ ...s, teamOn: v }))} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.ink, fontSize: 15, fontWeight: '600' }}>모임</Text>
+            <Text style={{ color: t.ink2, fontSize: 12 }}>{hasMeet ? '모임에 들어가 있어서 켜져 있습니다.' : '러닝크루·가족·동기모임 일정과 투표'}</Text>
+          </View>
+          <Switch value={state.meetOn === true || hasMeet} disabled={hasMeet} onValueChange={(v: boolean) => update((s) => ({ ...s, meetOn: v }))} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <View style={{ flex: 1 }}>

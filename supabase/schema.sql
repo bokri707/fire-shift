@@ -8,6 +8,7 @@ create table if not exists public.teams (
   code text primary key,
   name text not null,
   base date,
+  kind text not null default 'team' check (kind in ('team', 'meet')), -- team=근무 팀, meet=모임
   created_at timestamptz default now()
 );
 
@@ -59,9 +60,26 @@ begin
   insert into teams(code, name, base) values (p_code, p_name, p_base);
 end $$;
 
+-- 종류를 받는 새 함수. 예전 create_team(3개 인자)도 서버에 남아 있습니다. (이 파일 맨 아래 참고)
+create or replace function public.create_team_k(p_code text, p_name text, p_base date, p_kind text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_code !~ '^[가-힣A-Za-z0-9]{2,12}$' then raise exception 'bad code'; end if;
+  if p_name is null or length(p_name) not between 1 and 20 then raise exception 'bad name'; end if;
+  if p_kind not in ('team', 'meet') then raise exception 'bad kind'; end if;
+  insert into teams(code, name, base, kind) values (p_code, p_name, p_base, p_kind);
+end $$;
+
+create or replace function public.set_team_kind(p_code text, p_kind text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_kind not in ('team', 'meet') then raise exception 'bad kind'; end if;
+  update teams set kind = p_kind where code = p_code;
+end $$;
+
 create or replace function public.get_team(p_code text)
 returns json language sql stable security definer set search_path = public as $$
-  select row_to_json(t) from (select code, name, base from teams where code = p_code) t;
+  select row_to_json(t) from (select code, name, base, kind from teams where code = p_code) t;
 $$;
 
 create or replace function public.upsert_member(p_code text, p_id text, p_name text, p_team integer, p_anchor date, p_ex jsonb)
@@ -122,6 +140,7 @@ end $$;
 create or replace function public.fetch_team(p_code text)
 returns json language sql stable security definer set search_path = public as $$
   select json_build_object(
+    'kind', (select t.kind from teams t where t.code = p_code),
     'members', coalesce((select json_agg(json_build_object('id', m.id, 'name', m.name, 'team', m.team, 'ex', m.ex) order by m.updated_at)
                          from members m where m.team_code = p_code), '[]'::json),
     'polls', coalesce((select json_agg(json_build_object('id', p.id, 'title', p.title, 'dates', p.dates, 'final', p.final, 'created_at', p.created_at) order by p.created_at desc)
@@ -160,3 +179,6 @@ end;
 $$;
 revoke all on function public.bump_usage(text) from public;
 grant execute on function public.bump_usage(text) to anon, authenticated;
+
+-- 참고: 서버에는 예전 create_team(p_code, p_name, p_base)도 그대로 남아 있습니다. (옛 앱 호환용, 종류는 항상 team)
+-- 위 create_team 정의는 새 서버에서는 없어도 됩니다.

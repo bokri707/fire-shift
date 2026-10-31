@@ -31,6 +31,26 @@ function defaults(today: string): AppState {
   };
 }
 
+export type GroupKind = 'team' | 'meet';
+export const groupKind = (g: { kind?: GroupKind }): GroupKind => (g.kind === 'meet' ? 'meet' : 'team');
+
+/** 보고 있는 소모임을 code인 소모임으로 바꿉니다. 보던 소모임은 others로 보관합니다. */
+export function switchGroup(s: AppState, code: string): AppState {
+  if (!s.cloud || s.cloud.code === code) return s;
+  const g = (s.others || []).find((x) => x.code === code);
+  if (!g) return s;
+  const rest = (s.others || []).filter((x) => x.code !== code);
+  rest.push({ ...s.cloud, members: s.members, polls: s.polls });
+  return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick, kind: g.kind }, members: g.members, polls: g.polls, others: rest };
+}
+
+/** 이 종류의 소모임을 보고 있지 않으면, 가입한 같은 종류 소모임 중 하나로 바꿉니다. (없으면 그대로) */
+export function focusKind(s: AppState, kind: GroupKind): AppState {
+  if (s.cloud && groupKind(s.cloud) === kind) return s;
+  const g = (s.others || []).find((o) => groupKind(o) === kind);
+  return g ? switchGroup(s, g.code) : s;
+}
+
 export type Update = (fn: (s: AppState) => AppState) => void;
 
 interface Store {

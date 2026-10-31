@@ -10,27 +10,30 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import TeamScreen from './src/screens/TeamScreen';
 import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
 import { bump } from './src/lib/usage';
-import { StoreProvider, useStore } from './src/store';
+import { StoreProvider, focusKind, groupKind, useStore } from './src/store';
 import { useTheme } from './src/theme';
 
-type Tab = 'cal' | 'team' | 'pair' | 'set';
+type Tab = 'cal' | 'team' | 'meet' | 'pair' | 'set';
 const TABS: { v: Tab; label: string }[] = [
   { v: 'cal', label: '달력' },
-  { v: 'team', label: '팀·모임' },
+  { v: 'team', label: '팀' },
+  { v: 'meet', label: '모임' },
   { v: 'pair', label: '부부·육아' },
   { v: 'set', label: '설정' },
 ];
 
 function Shell(): React.ReactElement {
   const t = useTheme();
-  const { state } = useStore();
+  const { state, update } = useStore();
   const [tab, setTab] = useState<Tab>(codeFromUrl() ? 'team' : 'cal');
   useEffect(() => { if (Platform.OS === 'web') autoLeaveKakao(); }, []);
 
   // 처음에는 달력·설정만 보여 주고, 소모임에 들어가거나 설정에서 켜면 해당 탭이 나타납니다.
-  const teamShown = state.teamOn === true || !!state.cloud || !!(state.others && state.others.length) || !!codeFromUrl();
+  const groups = (state.cloud ? [state.cloud] : []).concat(state.others || []);
+  const teamShown = state.teamOn === true || groups.some((g) => groupKind(g) === 'team') || !!codeFromUrl();
+  const meetShown = state.meetOn === true || groups.some((g) => groupKind(g) === 'meet');
   const pairShown = state.pairOn === true;
-  const shown = TABS.filter((x) => x.v === 'cal' || x.v === 'set' || (x.v === 'team' && teamShown) || (x.v === 'pair' && pairShown));
+  const shown = TABS.filter((x) => x.v === 'cal' || x.v === 'set' || (x.v === 'team' && teamShown) || (x.v === 'meet' && meetShown) || (x.v === 'pair' && pairShown));
   const cur: Tab = shown.some((x) => x.v === tab) ? tab : 'cal';
 
   // 사용 횟수 (합계만): 앱을 열 때, 탭을 볼 때
@@ -39,7 +42,19 @@ function Shell(): React.ReactElement {
     const sub = RNAppState.addEventListener('change', (st) => { if (st === 'active') bump('open'); });
     return () => sub.remove();
   }, []);
-  const go = (v: Tab): void => { setTab(v); bump(v); };
+  const go = (v: Tab): void => {
+    setTab(v);
+    bump(v === 'meet' ? 'team' : v);
+    // 팀·모임 탭은 그 종류의 소모임을 보여 주도록 맞춥니다.
+    if (v === 'team' || v === 'meet') update((s) => focusKind(s, v));
+  };
+  // 보고 있는 소모임의 종류가 바뀌면(가입·종류 변경) 그 종류의 탭으로 옮겨 갑니다.
+  const curKind = state.cloud ? groupKind(state.cloud) : '';
+  const curCode = state.cloud ? state.cloud.code : '';
+  useEffect(() => {
+    if (!curKind) return;
+    setTab((tb) => (tb === 'team' && curKind === 'meet' ? 'meet' : tb === 'meet' && curKind === 'team' ? 'team' : tb));
+  }, [curCode, curKind]);
   const kakao = Platform.OS === 'web' && inKakaoBrowser();
   const top = Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 24) : 52;
   return (
@@ -71,7 +86,8 @@ function Shell(): React.ReactElement {
       </View>
       <View style={{ flex: 1 }}>
         <View style={{ flex: 1, display: cur === 'cal' ? 'flex' : 'none' }}><CalendarScreen /></View>
-        <View style={{ flex: 1, display: cur === 'team' ? 'flex' : 'none' }}><TeamScreen /></View>
+        <View style={{ flex: 1, display: cur === 'team' ? 'flex' : 'none' }}><TeamScreen kind="team" /></View>
+        <View style={{ flex: 1, display: cur === 'meet' ? 'flex' : 'none' }}><TeamScreen kind="meet" /></View>
         <View style={{ flex: 1, display: cur === 'pair' ? 'flex' : 'none' }}><PairScreen /></View>
         <View style={{ flex: 1, display: cur === 'set' ? 'flex' : 'none' }}><SettingsScreen onDone={() => go('cal')} /></View>
       </View>

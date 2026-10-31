@@ -4,51 +4,58 @@ import { WD, daysInMonth, firstChar, fmt, fromIdx, idx, iso, parse, wdOf } from 
 import { LBL, Person, decPattern, isThree, mEff, mFree, manualFromEx, meetDays, roster, teamBase } from '../lib/shift';
 import { downloadIcs, meetIcs } from '../lib/ics';
 import { clearCodeFromUrl, codeFromUrl, inviteLink } from '../lib/link';
-import { cloudConfigured, createTeam, deleteMember, deletePoll, fetchTeam, genCode, getTeam, insertPoll, normCode, updatePoll, upsertVote, validCode } from '../cloud';
+import { cloudConfigured, createTeam, deleteMember, deletePoll, fetchTeam, genCode, getTeam, insertPoll, normCode, setTeamKind, updatePoll, upsertVote, validCode } from '../cloud';
 import { AppState, CloudInfo, Poll } from '../types';
 import MonthCalendar, { Deco } from '../MonthCalendar';
 import { CareDot, TeamLeaveCard, careColor } from '../CoupleCard';
 import { isEventPoll } from '../lib/events';
-import { markWrite, newId, useStore } from '../store';
+import { GroupKind, groupKind, markWrite, newId, switchGroup, useStore } from '../store';
 import { kindColors, useTheme } from '../theme';
 import { Btn, Card, Chip, H2, Hint, Pill, SegRow } from '../ui';
 
 type Sub = 'team' | 'leave' | 'meet';
 
-export default function TeamScreen(): React.ReactElement {
+/** kind: 이 탭이 보여 줄 소모임 종류. 팀 탭은 근무 팀, 모임 탭은 모임 소모임만 다룹니다. */
+export default function TeamScreen({ kind }: { kind: GroupKind }): React.ReactElement {
   const { state } = useStore();
-  const k = state.cloud ? state.cloud.code : 'local';
-  const isMeet = !!state.cloud && state.cloud.kind === 'meet';
+  const isMeet = kind === 'meet';
+  const cur = state.cloud && groupKind(state.cloud) === kind ? state.cloud : null;
+  const k = cur ? cur.code : 'local';
+  // 팀 탭은 소모임 없이 혼자 써 보는 입력도 보여 줍니다.
+  const showBody = !!cur || (!isMeet && !state.cloud);
   const [sub, setSub] = useState<Sub>('team');
   // 화면을 숨길 뿐 없애지 않아서, 메뉴를 오가도 입력 중이던 내용이 유지됩니다.
   const show = (v: Sub): { display: 'flex' | 'none'; gap: number } => ({ display: sub === v ? 'flex' : 'none', gap: 14 });
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-      <CloudCard />
-      <SegRow<Sub>
+      <CloudCard kind={kind} />
+      {showBody ? <SegRow<Sub>
         options={[{ v: 'team', label: isMeet ? '멤버 근무' : '우리 팀' }, { v: 'leave', label: isMeet ? '모임 일정' : '연가계획표' }, { v: 'meet', label: '모임·투표' }]}
         value={sub}
         onChange={setSub}
-      />
-      <View style={show('team')}>
+      /> : null}
+      {showBody ? <View style={show('team')}>
         <RosterCard key={'r' + k} />
-      </View>
-      <View style={show('leave')}>
+      </View> : null}
+      {showBody ? <View style={show('leave')}>
         <TeamLeaveCard key={'c' + k} />
-      </View>
-      <View style={show('meet')}>
+      </View> : null}
+      {showBody ? <View style={show('meet')}>
         <MeetCard key={'m' + k} />
         <PollsCard key={'p' + k} />
-      </View>
+      </View> : null}
     </ScrollView>
   );
 }
 
 /* ---------- 소모임 (코드로 폰끼리 공유, 여러 개 가능) ---------- */
-function CloudCard(): React.ReactElement | null {
+function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
+  const isMeet = kind === 'meet';
+  const word = isMeet ? '모임' : '팀';
   const t = useTheme();
   const { state, update, netErr, reportErr } = useStore();
-  const urlCode = normCode(codeFromUrl());
+  // 초대 링크로 들어온 코드는 팀 탭에서 처리합니다. (들어간 뒤 종류가 모임이면 모임 탭으로 옮겨 갑니다)
+  const urlCode = isMeet ? '' : normCode(codeFromUrl());
   const alreadyIn = !!urlCode && ((state.cloud && state.cloud.code === urlCode) || (state.others || []).some((g) => g.code === urlCode));
   const [mode, setMode] = useState<'create' | 'join'>(urlCode && !alreadyIn ? 'join' : 'create');
   const [adding, setAdding] = useState(!!urlCode && !alreadyIn);
@@ -57,16 +64,16 @@ function CloudCard(): React.ReactElement | null {
   const [code, setCode] = useState(urlCode && !alreadyIn ? urlCode : '');
   const [newCodeText, setNewCodeText] = useState(genCode());
   const [team, setTeam] = useState<number>(state.team);
-  const [newKind, setNewKind] = useState<'team' | 'meet'>('team');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
   const [note, setNote] = useState('');
   const [resumeId, setResumeId] = useState('');
-  const curNick = (state.cloud && state.cloud.nick) || state.nick || '나';
+  const curGroup = state.cloud && groupKind(state.cloud) === kind ? state.cloud : null;
+  const curNick = (curGroup && curGroup.nick) || state.nick || '나';
   const [myNick, setMyNick] = useState(curNick);
   const [nickMsg, setNickMsg] = useState('');
-  const curCode = state.cloud ? state.cloud.code : '';
+  const curCode = curGroup ? curGroup.code : '';
   useEffect(() => { setMyNick(curNick); setNickMsg(''); }, [curCode, curNick]);
   if (!cloudConfigured()) return null;
 
@@ -91,7 +98,7 @@ function CloudCard(): React.ReactElement | null {
   };
 
   const others = state.others || [];
-  const chips = (state.cloud ? [{ code: state.cloud.code, name: state.cloud.name }] : []).concat(others.map((g) => ({ code: g.code, name: g.name })));
+  const chips = (state.cloud ? [state.cloud] : []).concat(others).filter((g) => groupKind(g) === kind).map((g) => ({ code: g.code, name: g.name }));
   chips.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
   /** 새 소모임을 지금 보는 소모임으로 만듭니다. 보던 소모임은 others로 보관합니다. */
@@ -102,15 +109,9 @@ function CloudCard(): React.ReactElement | null {
   };
 
   const switchTo = (c: string): void => {
-    if (state.cloud && state.cloud.code === c) return;
+    if (curGroup && curGroup.code === c) return;
     setArmed(false); setAdding(false);
-    update((s) => {
-      const g = (s.others || []).find((x) => x.code === c);
-      if (!g || !s.cloud) return s;
-      const rest = (s.others || []).filter((x) => x.code !== c);
-      rest.push({ ...s.cloud, members: s.members, polls: s.polls });
-      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick, kind: g.kind }, members: g.members, polls: g.polls, others: rest };
-    });
+    update((s) => switchGroup(s, c));
   };
 
   const fail = (m: string): void => { setErr(m); setBusy(false); };
@@ -124,9 +125,9 @@ function CloudCard(): React.ReactElement | null {
     setBusy(true); setErr('');
     try {
       if (await getTeam(cd)) { fail('이미 쓰는 코드입니다. 다른 코드로 바꿔 주세요.'); return; }
-      await createTeam(cd, nm, teamBase(state));
+      await createTeam(cd, nm, teamBase(state), kind);
       markWrite();
-      update((s) => ({ ...enter(s, { code: cd, name: nm, myId: newId(), nick: nk, kind: newKind }), nick: s.cloud ? s.nick : nk }));
+      update((s) => ({ ...enter(s, { code: cd, name: nm, myId: newId(), nick: nk, kind }), nick: s.cloud ? s.nick : nk }));
       setName(''); setNewCodeText(genCode()); setAdding(false);
       setBusy(false);
     } catch (e) {
@@ -139,7 +140,7 @@ function CloudCard(): React.ReactElement | null {
     const nk = nick.trim();
     if (!validCode(cd)) { fail('초대 코드를 확인하세요. (한글·영문·숫자 2~12자)'); return; }
     if (!nk) { fail('내 별명을 입력하세요.'); return; }
-    if (chips.some((c) => c.code === cd)) { fail('이미 들어가 있는 소모임입니다.'); return; }
+    if ((state.cloud && state.cloud.code === cd) || others.some((g) => g.code === cd)) { fail('이미 들어가 있는 소모임입니다.'); return; }
     setBusy(true); setErr('');
     try {
       const tm = await getTeam(cd);
@@ -171,7 +172,7 @@ function CloudCard(): React.ReactElement | null {
           if (dp) base = { ...base, team: useTeam, pattern: dp.pat, anchor: dp.anchor, manual: manualFromEx(mine ? mine.ex : {}) };
           else if (isThree(s.pattern)) base = { ...base, team: useTeam, anchor: fromIdx(idx(tm.base) + (useTeam - 1)) };
         }
-        return { ...enter({ ...base, ex, nick: s.cloud ? s.nick : nk, configured: true }, { code: tm.code, name: tm.name, myId: mine ? mine.id : newId(), nick: nk }) };
+        return { ...enter({ ...base, ex, nick: s.cloud ? s.nick : nk, configured: true }, { code: tm.code, name: tm.name, myId: mine ? mine.id : newId(), nick: nk, kind: tm.kind === 'meet' ? 'meet' : 'team' }) };
       });
       setCode(''); setAdding(false); setResumeId(''); clearCodeFromUrl();
       setBusy(false);
@@ -189,8 +190,8 @@ function CloudCard(): React.ReactElement | null {
     update((s) => {
       const rest = s.others || [];
       if (!rest.length) return { ...s, cloud: null, members: [], polls: [], others: [] };
-      const g = rest[0];
-      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick, kind: g.kind }, members: g.members, polls: g.polls, others: rest.slice(1) };
+      const g = rest.find((x) => groupKind(x) === kind) || rest[0];
+      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick, kind: g.kind }, members: g.members, polls: g.polls, others: rest.filter((x) => x.code !== g.code) };
     });
     reportErr('');
   };
@@ -199,12 +200,10 @@ function CloudCard(): React.ReactElement | null {
 
   const form = (
     <View style={{ gap: 10 }}>
-      <SegRow<'create' | 'join'> options={[{ v: 'create', label: '소모임 만들기' }, { v: 'join', label: '코드로 들어가기' }]} value={mode} onChange={(v) => { setMode(v); setErr(''); }} />
+      <SegRow<'create' | 'join'> options={[{ v: 'create', label: word + ' 만들기' }, { v: 'join', label: '코드로 들어가기' }]} value={mode} onChange={(v) => { setMode(v); setErr(''); }} />
       {mode === 'create' ? (
         <View style={{ gap: 8 }}>
-          <Text style={{ color: t.ink2, fontSize: 12 }}>종류</Text>
-          <SegRow<'team' | 'meet'> options={[{ v: 'team', label: '근무 팀' }, { v: 'meet', label: '모임 (러닝·가족 등)' }]} value={newKind} onChange={setNewKind} />
-          <Text style={{ color: t.ink2, fontSize: 12 }}>소모임 이름</Text>
+          <Text style={{ color: t.ink2, fontSize: 12 }}>{word} 이름</Text>
           <TextInput value={name} onChangeText={(v: string) => setName(v)} maxLength={20} placeholderTextColor={t.ink2} style={field} />
           <Text style={{ color: t.ink2, fontSize: 12 }}>초대 코드 (한글 가능, 직접 바꿔도 됩니다)</Text>
           <TextInput value={newCodeText} onChangeText={(v: string) => setNewCodeText(v)} maxLength={12} autoCapitalize="none" placeholderTextColor={t.ink2} style={field} />
@@ -232,24 +231,31 @@ function CloudCard(): React.ReactElement | null {
         </View>
       )}
       {err ? <Hint bad>{err}</Hint> : null}
-      <Btn label={busy ? '처리 중...' : mode === 'create' ? '소모임 만들기' : resumeId ? '이어서 쓰기' : '들어가기'} disabled={busy} onPress={() => { if (mode === 'create') create(); else join(); }} />
+      <Btn label={busy ? '처리 중...' : mode === 'create' ? word + ' 만들기' : resumeId ? '이어서 쓰기' : '들어가기'} disabled={busy} onPress={() => { if (mode === 'create') create(); else join(); }} />
     </View>
   );
 
-  if (!state.cloud) {
+  if (!curGroup) {
     return (
       <Card style={{ gap: 10 }}>
-        <H2>소모임 (폰끼리 연결)</H2>
-        <Hint>소모임을 만들면 초대 코드가 생깁니다. 같은 코드로 들어온 사람들의 근무와 모임 투표가 서로의 폰에 보입니다. 소모임은 여러 개 만들거나 들어갈 수 있습니다. 아래의 "우리 팀" 수동 입력은 혼자 써 볼 때만 쓰세요.</Hint>
+        <H2>{isMeet ? '모임 (폰끼리 연결)' : '팀 (폰끼리 연결)'}</H2>
+        <Hint>{isMeet
+          ? '러닝크루·가족·동기모임처럼 근무와 상관없는 모임을 만드세요. 초대 코드로 들어온 사람들과 일정과 모임 투표를 함께 봅니다. 여러 개 만들거나 들어갈 수 있습니다.'
+          : '근무 팀을 만들면 초대 코드가 생깁니다. 같은 코드로 들어온 사람들의 근무와 연가계획이 서로의 폰에 보입니다. 여러 개 만들거나 들어갈 수 있습니다. 아래의 "우리 팀" 수동 입력은 혼자 써 볼 때만 쓰세요.'}</Hint>
+        {chips.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {chips.map((g) => <Chip key={g.code} label={g.name} on={false} onPress={() => switchTo(g.code)} />)}
+          </View>
+        ) : null}
         {form}
       </Card>
     );
   }
 
-  const c = state.cloud;
+  const c = curGroup;
   return (
     <Card style={{ gap: 10 }}>
-      <H2>내 소모임</H2>
+      <H2>{isMeet ? '내 모임' : '내 팀'}</H2>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {chips.map((g) => <Chip key={g.code} label={g.name} on={!adding && g.code === c.code} onPress={() => switchTo(g.code)} />)}
         <Chip label="＋ 추가" on={adding} onPress={() => { setAdding(!adding); setErr(''); }} />
@@ -259,13 +265,18 @@ function CloudCard(): React.ReactElement | null {
           <Text style={{ color: t.ink2, fontSize: 12 }}>{c.name} · 초대 코드</Text>
           <Text selectable style={{ color: t.ink, fontSize: 26, fontWeight: '700', letterSpacing: 1 }}>{c.code}</Text>
           <Hint>이 코드를 동료에게 알려 주세요. 코드로 들어와 별명과 팀만 입력하면 됩니다. 아래의 멤버·쉬는 날·투표는 지금 고른 소모임 기준입니다.</Hint>
-          <Text style={{ color: t.ink2, fontSize: 12 }}>이 소모임의 종류</Text>
-          <SegRow<'team' | 'meet'>
+          <Text style={{ color: t.ink2, fontSize: 12 }}>이 소모임의 종류 (같은 소모임의 모든 사람에게 적용됩니다)</Text>
+          <SegRow<GroupKind>
             options={[{ v: 'team', label: '근무 팀' }, { v: 'meet', label: '모임' }]}
-            value={c.kind === 'meet' ? 'meet' : 'team'}
-            onChange={(v) => update((s) => (s.cloud ? { ...s, cloud: { ...s.cloud, kind: v } } : s))}
+            value={groupKind(c)}
+            onChange={(v) => {
+              if (v === groupKind(c)) return;
+              markWrite();
+              update((s) => (s.cloud ? { ...s, cloud: { ...s.cloud, kind: v } } : s));
+              setTeamKind(c.code, v).catch(() => reportErr('종류를 서버에 저장하지 못했습니다.'));
+            }}
           />
-          <Hint>근무 팀은 연가 한도·보강 계산과 육아시간을 보여주고, 모임은 일정과 투표만 보여줍니다. 이 폰에서만 적용됩니다.</Hint>
+          <Hint>근무 팀은 연가 한도·보강 계산과 육아시간을 보여주고, 모임은 일정과 투표만 보여줍니다. 바꾸면 다른 탭으로 옮겨 갑니다.</Hint>
           <Text style={{ color: t.ink2, fontSize: 12 }}>이 소모임에서 쓰는 내 별명</Text>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput value={myNick} onChangeText={(v: string) => { setMyNick(v); setNickMsg(''); }} maxLength={12} placeholderTextColor={t.ink2} style={[field, { flex: 1 }]} />

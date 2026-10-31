@@ -109,8 +109,8 @@ export default function CalendarScreen(): React.ReactElement {
         </Card>
       ) : null}
 
-      {state.teamOn !== true && !state.cloud ? (
-        <Hint>동료와 근무를 공유하거나 모임 투표를 하려면 설정 탭의 "기능 켜기"에서 팀·모임을 켜세요.</Hint>
+      {state.teamOn !== true && state.meetOn !== true && !state.cloud ? (
+        <Hint>동료와 근무를 공유하거나 모임 투표를 하려면 설정 탭의 "기능 켜기"에서 팀이나 모임을 켜세요.</Hint>
       ) : null}
 
       <Text style={{ color: t.ink2, fontSize: 12, lineHeight: 18 }}>
