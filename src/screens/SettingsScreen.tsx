@@ -4,7 +4,7 @@ import { applyBackup, makeBackup, readBackup } from '../lib/backup';
 import { useTheme } from '../theme';
 import { notifySupported } from '../lib/notify';
 import { setNotifyPref, useNotifyPref } from '../DutyNotifier';
-import { groupKind, useStore } from '../store';
+import { groupKind, pairGroupCode, useStore } from '../store';
 import SetupCard from '../SetupCard';
 import { Btn, Card, Chip, H2, Hint } from '../ui';
 
@@ -93,6 +93,15 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
           </View>
           <Switch value={state.pairOn === true} onValueChange={(v: boolean) => update((s) => ({ ...s, pairOn: v }))} />
         </View>
+        {state.pairOn === true && groups.length > 1 ? (
+          <View style={{ gap: 6 }}>
+            <Text style={{ color: t.ink2, fontSize: 12 }}>부부·육아 탭이 배우자를 찾을 소모임</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {groups.map((g) => <Chip key={g.code} label={g.name} on={pairGroupCode(state) === g.code} onPress={() => update((s) => ({ ...s, pairCode: g.code }))} />)}
+            </View>
+            <Hint>한 번 정하면 팀·모임 탭을 오가도 바뀌지 않습니다. 정하지 않으면 부부(가족)로 표시된 소모임을 자동으로 씁니다.</Hint>
+          </View>
+        ) : null}
       </Card>
 
       {Platform.OS !== 'web' && notifySupported() ? (

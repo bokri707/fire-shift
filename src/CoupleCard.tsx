@@ -5,7 +5,7 @@ import { WD, daysInMonth, firstWd, fromIdx, idx, iso, parse } from './lib/date';
 import { deletePoll, insertPoll, updatePoll } from './cloud';
 import { EV_COLOR, eventTitle, eventsByDate, parseEvent } from './lib/events';
 import { MEff, Person, mEff, roster } from './lib/shift';
-import { groupKind, markWrite, newId, switchGroup, useStore } from './store';
+import { markWrite, newId, pairGroupCode, switchGroup, useStore } from './store';
 import { Poll } from './types';
 import { kindColors, useTheme } from './theme';
 import { Btn, Card, H2, Hint } from './ui';
@@ -487,8 +487,7 @@ function useMonth(startOffset: number): { view: { y: number; m: number }; move: 
 
 /** 부부 탭: 나와 배우자의 근무·육아시간을 한 달력에 */
 export function PairCard(): React.ReactElement | null {
-  const t = useTheme();
-  const { state: real, update, today } = useStore();
+  const { state: real, today } = useStore();
   const { view, move, swipe } = useMonth(0);
   if (!real.cloud) return (
     <Card style={{ gap: 10 }}>
@@ -496,13 +495,8 @@ export function PairCard(): React.ReactElement | null {
       <Hint>먼저 팀 또는 모임 탭에서 소모임을 만들거나 코드로 들어오세요. 배우자도 같은 소모임에 들어오면 두 사람의 근무와 육아시간을 한 달력에서 볼 수 있습니다.</Hint>
     </Card>
   );
-  // 어느 탭을 보고 있든, 부부·육아 탭은 배우자가 있는 소모임을 따로 정해서 봅니다.
-  const groups: { code: string; name: string; kind?: 'team' | 'meet'; pair?: boolean; n: number }[] = [{ code: real.cloud.code, name: real.cloud.name, kind: real.cloud.kind, pair: real.cloud.pair, n: real.members.length }]
-    .concat((real.others || []).map((g) => ({ code: g.code, name: g.name, kind: g.kind, pair: g.pair, n: g.members.length })));
-  const picked = groups.find((g) => g.code === real.pairCode);
-  // 고른 게 없으면: 부부(가족)로 표시된 소모임 → 사람이 있는 모임 → 지금 소모임 순서
-  const auto = groups.find((g) => g.pair === true) || groups.find((g) => groupKind(g) === 'meet' && g.n > 0) || groups[0];
-  const useCode = (picked || auto).code;
+  // 어느 탭을 보고 있든, 부부·육아 탭은 설정에서 정한(또는 자동으로 고른) 소모임에서 배우자를 찾습니다.
+  const useCode = pairGroupCode(real);
   const state = switchGroup(real, useCode);
   const ms = roster(state);
   const me = ms.find((x) => x.isMe) as Person;
@@ -510,14 +504,8 @@ export function PairCard(): React.ReactElement | null {
   return (
     <Card style={{ gap: 10 }}>
       <H2>부부·육아시간 함께 보기</H2>
-      {groups.length > 1 ? (
-        <View style={{ gap: 6 }}>
-          <Text style={{ color: t.ink2, fontSize: 12 }}>배우자가 들어 있는 소모임</Text>
-          <Chips items={groups.map((g) => ({ id: g.code, label: g.name }))} value={useCode} onPick={(id) => update((s) => ({ ...s, pairCode: id }))} />
-        </View>
-      ) : null}
       {others.length === 0 ? (
-        <Hint>고른 소모임에 배우자가 들어오면 두 사람의 근무와 육아시간을 한 달력에서 볼 수 있습니다. 팀 또는 모임 탭의 소모임 코드로 배우자를 초대하세요.</Hint>
+        <Hint>배우자가 소모임에 들어오면 두 사람의 근무와 육아시간을 한 달력에서 볼 수 있습니다. 팀 또는 모임 탭의 소모임 코드로 초대하고, 어느 소모임에서 찾을지는 설정 탭의 기능 켜기에서 정하세요.</Hint>
       ) : (
         <>
           <MonthNav view={view} move={move} />

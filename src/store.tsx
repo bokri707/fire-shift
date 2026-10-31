@@ -51,6 +51,16 @@ export function focusKind(s: AppState, kind: GroupKind): AppState {
   return g ? switchGroup(s, g.code) : s;
 }
 
+/** 부부·육아 탭이 배우자를 찾을 소모임 코드: 고른 것 → 부부(가족)로 표시된 것 → 사람이 있는 모임 → 지금 소모임 */
+export function pairGroupCode(s: AppState): string {
+  if (!s.cloud) return '';
+  const gs: { code: string; kind?: GroupKind; pair?: boolean; n: number }[] = [{ code: s.cloud.code, kind: s.cloud.kind, pair: s.cloud.pair, n: s.members.length }]
+    .concat((s.others || []).map((g) => ({ code: g.code, kind: g.kind, pair: g.pair, n: g.members.length })));
+  const picked = gs.find((g) => g.code === s.pairCode);
+  const auto = gs.find((g) => g.pair === true) || gs.find((g) => groupKind(g) === 'meet' && g.n > 0) || gs[0];
+  return (picked || auto).code;
+}
+
 export type Update = (fn: (s: AppState) => AppState) => void;
 
 interface Store {
