@@ -150,12 +150,18 @@ export function myProfile(st: AppState, since: string, nick?: string): { name: s
   return { name: nick || st.nick || '나', team: st.team, anchor: st.anchor, ex };
 }
 
-/** 한글 초대 코드 추천: 예) 용감한호랑이27 */
+/** 초대 코드 추천: 헷갈리는 글자(0/O, 1/I)를 뺀 영문 대문자·숫자 12자. 예) K7M3QX9TW2HB (서버가 허용하는 최대 길이) */
 export function genCode(): string {
-  const A = ['용감한', '든든한', '씩씩한', '빠른', '푸른', '붉은', '힘센', '의리있는', '날쌘', '듬직한'];
-  const B = ['호랑이', '독수리', '소방차', '불꽃', '사자', '늑대', '파도', '매', '곰', '고래'];
-  const n = Math.floor(Math.random() * 90) + 10;
-  return A[Math.floor(Math.random() * A.length)] + B[Math.floor(Math.random() * B.length)] + n;
+  const CH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const n = 12;
+  const cr = (globalThis as unknown as { crypto?: { getRandomValues?: (a: Uint8Array) => Uint8Array } }).crypto;
+  const bytes = new Uint8Array(n);
+  // 가능하면 안전한 난수를 쓰고, 없는 환경이면 Math.random으로 대신합니다.
+  if (cr && cr.getRandomValues) cr.getRandomValues(bytes);
+  else for (let i = 0; i < n; i++) bytes[i] = Math.floor(Math.random() * 256);
+  let s = '';
+  for (let i = 0; i < n; i++) s += CH[bytes[i] % CH.length];
+  return s;
 }
 
 /** 입력한 코드를 정리합니다. 영문만이면 대문자로, 한글은 그대로. */
