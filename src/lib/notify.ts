@@ -57,9 +57,9 @@ const at = (iso: string, h: number): Date => { const p = parse(iso); return new 
 /**
  * 이미 있던 예약은 모두 지우고 다시 만듭니다.
  *  - duty: 앞으로 days일 중 근무하는 날의 전날 hour시에 알림
- *  - meet: 확정된 모임의 전날(기본 오전 9시)과 당일(기본 오전 8시)에 알림, 시각은 설정에서 바꿈
+ *  - meet: 확정된 모임의 전날(기본 오전 9시)에 알림, 시각은 설정에서 바꿈
  */
-export async function reschedule(st: AppState, today: string, opt: { duty: boolean; meet: boolean; hour: number; meetEve?: number; meetDay?: number }, days: number): Promise<number> {
+export async function reschedule(st: AppState, today: string, opt: { duty: boolean; meet: boolean; hour: number; meetEve?: number }, days: number): Promise<number> {
   const N = mod();
   if (!N) return 0;
   await cancelAll();
@@ -79,7 +79,6 @@ export async function reschedule(st: AppState, today: string, opt: { duty: boole
     for (const m of meets) {
       const name = (m.group ? '[' + m.group + '] ' : '') + m.title;
       if (await schedule(N, at(fromIdx(idx(m.final) - 1), opt.meetEve ?? 9), '내일 모임', name)) n++;
-      if (await schedule(N, at(m.final, opt.meetDay ?? 8), '오늘 모임', name)) n++;
     }
   }
   return n;
