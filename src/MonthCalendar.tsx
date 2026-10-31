@@ -99,6 +99,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
     if (ev) ev.filter((x) => x.kind !== 'meet').forEach((x) => evNames.push({ d, name: x.name, color: x.color, group: x.group }));
     if (mt) mt.forEach((m) => meetList.push({ d, name: m.g ? m.g + ' · ' + m.t : m.t }));
     const chipText = e.label === '당직' ? '당' : e.label === '비번' ? '비' : e.label;
+    const care = e.sub.startsWith('육아');
     const sol = deco && deco.solid ? deco.solid : '';
     const numColor = isToday ? t.surface : sol ? '#FFFFFF' : hn || wk === 0 ? t.sun : wk === 6 ? t.sat : t.ink;
     const borderColor = isToday ? t.ink : sol ? sol : deco && deco.border ? deco.border : mt ? t.meet : hn ? t.hol : t.line;
@@ -127,6 +128,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
             fontSize: 12, fontWeight: e.kind === 'off' ? '500' : '700',
             color: e.kind === 'duty' ? t.onDuty : sol ? '#FFFFFF' : e.kind === 'off' ? t.ink2 : c.fg,
           }}>{chipText}</Text>
+          {care ? <View style={{ position: 'absolute', top: -2, right: -6, width: 8, height: 8, borderRadius: 4, backgroundColor: '#E67E22' }} /> : null}
         </View>
         {mt && !(deco && deco.tag) ? (
           <View style={{ maxWidth: '100%', paddingHorizontal: 4, borderRadius: 4, backgroundColor: t.meet }}>
@@ -134,7 +136,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
           </View>
         ) : (
           <Text style={{ color: sol ? '#FFFFFF' : deco && deco.tagColor ? deco.tagColor : c.fg, fontSize: 10.5, fontWeight: deco && deco.tag ? '700' : '400', minHeight: 14 }}>
-            {deco && deco.tag ? deco.tag : e.sub}
+            {deco && deco.tag ? deco.tag : care ? '' : e.sub}
           </Text>
         )}
         {sol ? <Text style={{ position: 'absolute', top: 2, right: 3, color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>✓</Text> : null}
