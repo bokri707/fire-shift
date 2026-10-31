@@ -130,8 +130,8 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
             fontSize: 12, fontWeight: e.kind === 'off' ? '500' : '700',
             color: e.kind === 'duty' ? t.onDuty : sol ? '#FFFFFF' : e.kind === 'off' ? t.ink2 : c.fg,
           }}>{chipText}</Text>
-          {careL ? <View style={{ position: 'absolute', top: '50%', marginTop: -2.5, left: -6, width: 5, height: 5, borderRadius: 3, backgroundColor: '#E67E22' }} /> : null}
-          {careR ? <View style={{ position: 'absolute', top: '50%', marginTop: -2.5, right: -6, width: 5, height: 5, borderRadius: 3, backgroundColor: '#E67E22' }} /> : null}
+          {careL ? <View style={{ position: 'absolute', top: '50%', marginTop: -3, left: -3, width: 6, height: 6, borderRadius: 3, backgroundColor: '#E67E22' }} /> : null}
+          {careR ? <View style={{ position: 'absolute', top: '50%', marginTop: -3, right: -3, width: 6, height: 6, borderRadius: 3, backgroundColor: '#E67E22' }} /> : null}
         </View>
         {mt && !(deco && deco.tag) ? (
           <View style={{ maxWidth: '100%', paddingHorizontal: 4, borderRadius: 4, backgroundColor: t.meet }}>
