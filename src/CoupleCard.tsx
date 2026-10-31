@@ -182,7 +182,7 @@ function PairView({ me, others, today, y, m }: ViewProps): React.ReactElement {
 }
 
 /** 우리 팀(같은 팀 번호) 사람들 중 근무에서 빠지는 인원(연가·교육·파견·기타)을 날짜별로 세어, 한도(총 인원의 1/3)를 넘는지 보여줍니다. */
-function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; today: string; y: number; m: number; code: string; myId: string; polls: Poll[] }): React.ReactElement {
+function TeamView({ all, today, y, m, code, myId, polls, plan }: { all: Person[]; today: string; y: number; m: number; code: string; myId: string; polls: Poll[]; plan: boolean }): React.ReactElement {
   const t = useTheme();
   const { update, reportErr } = useStore();
   const ev = eventsByDate(polls);
@@ -306,24 +306,26 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
     const isOver = L > limit;
     const full = !isOver && L > 0 && L === limit;
     if (isOver) over++;
-    const bg = isOver ? t.duty : full ? '#FFE9A8' : L > 0 ? '#DCEFE6' : N > 0 ? '#EEF1F4' : t.surface;
+    const bg = !plan ? t.surface : isOver ? t.duty : full ? '#FFE9A8' : L > 0 ? '#DCEFE6' : N > 0 ? '#EEF1F4' : t.surface;
     const fg = isOver ? '#fff' : full ? '#7A5300' : t.leave;
     cells.push(
       <Pressable key={s} onPress={() => setSel(s)} style={{ flex: 1, minHeight: 80, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s ? 2 : 1, borderColor: sel === s ? t.accent : isToday ? t.ink : t.line, backgroundColor: bg }}>
         <Text style={{ fontSize: 12, fontWeight: '700', color: isOver ? '#fff' : wd === 0 ? t.sun : wd === 6 ? t.sat : t.ink, paddingLeft: 2 }}>{d}</Text>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          {L > 0 ? <Text style={{ fontSize: 14, fontWeight: '800', color: fg }}>{L}/{limit}</Text> : null}
-          {isOver ? <Text style={{ fontSize: 10, fontWeight: '800', color: '#fff' }}>보강</Text> : null}
+          {plan && L > 0 ? <Text style={{ fontSize: 14, fontWeight: '800', color: fg }}>{L}/{limit}</Text> : null}
+          {plan && isOver ? <Text style={{ fontSize: 10, fontWeight: '800', color: '#fff' }}>보강</Text> : null}
         </View>
         {ev[s] ? (
           <View style={{ flexDirection: 'row', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
             {ev[s].slice(0, 3).map((e) => <View key={e.id} style={{ backgroundColor: e.color, borderRadius: 4, paddingHorizontal: 3 }}><Text style={{ fontSize: 9, fontWeight: '800', color: '#fff' }}>{e.short}</Text></View>)}
           </View>
         ) : null}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: 15 }}>
-          {dots(cr.inn)}
-          {dots(cr.out)}
-        </View>
+        {plan ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: 15 }}>
+            {dots(cr.inn)}
+            {dots(cr.out)}
+          </View>
+        ) : null}
       </Pressable>,
     );
   }
@@ -332,23 +334,23 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
   const sp = sel ? parse(sel) : null;
   return (
     <>
-      {teamNos.length > 1 ? <Chips items={teamNos.map((x) => ({ id: String(x), label: x + '팀' }))} value={String(tm)} onPick={(id) => { setTm(Number(id)); setSel(''); }} /> : null}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      {plan && teamNos.length > 1 ? <Chips items={teamNos.map((x) => ({ id: String(x), label: x + '팀' }))} value={String(tm)} onPick={(id) => { setTm(Number(id)); setSel(''); }} /> : null}
+      {plan ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}>{tm}팀 총 인원 <Text style={{ fontWeight: '800' }}>{size}명</Text> · 빠질 수 있는 한도 <Text style={{ fontWeight: '800', color: t.duty }}>{limit}명</Text></Text>
         <Btn small ghost label="−" onPress={() => setSize(size - 1)} style={{ minWidth: 40 }} />
         <Btn small ghost label="+" onPress={() => setSize(size + 1)} style={{ minWidth: 40 }} />
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      </View> : null}
+      {plan ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <Dot color="#EEF1F4" label="팀 근무일" square />
         <Dot color="#DCEFE6" label="빠짐 (한도 안)" square />
         <Dot color="#FFE9A8" label="한도 도달" square />
         <Dot color={t.duty} label="한도 초과 · 보강" square />
-      </View>
+      </View> : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <Dot color={EV_COLOR.plain} label="팀 일정" square />
+        <Dot color={EV_COLOR.plain} label={plan ? '팀 일정' : '일정'} square />
         <Dot color={EV_COLOR.meet} label="확정된 모임" square />
       </View>
-      <View style={{ gap: 6 }}>
+      {plan ? <View style={{ gap: 6 }}>
         <Text style={{ color: t.ink, fontSize: 13 }}>육아시간: 칸의 <Text style={{ fontWeight: '800' }}>왼쪽 아래 모서리는 출근</Text> 때, <Text style={{ fontWeight: '800' }}>오른쪽 아래 모서리는 퇴근</Text> 때 쓰는 사람입니다. (한도 계산에는 세지 않습니다)</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {team.slice().sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).map((p) => (
@@ -358,9 +360,9 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
             </View>
           ))}
         </View>
-      </View>
+      </View> : null}
       <Weeks cells={cells} />
-      {si && sp ? (
+      {plan && si && sp ? (
         <View style={{ borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, gap: 4 }}>
           <Text style={{ color: t.ink, fontSize: 14, fontWeight: '700' }}>{sp[1]}월 {sp[2]}일 · {si.N === 0 ? '이 팀은 근무하지 않는 날' : '근무 대상 ' + si.N + '명 중 ' + si.L + '명 빠짐'}</Text>
           {si.N > 0 ? <Text style={{ color: t.ink2, fontSize: 13 }}>{si.names.length ? '빠지는 사람: ' + si.names.join(', ') : '빠지는 사람 없음'}</Text> : null}
@@ -388,10 +390,10 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
             </Text>
           ) : null}
         </View>
-      ) : <Text style={{ color: t.ink2, fontSize: 13 }}>날짜를 누르면 그날 빠지는 사람과 남은 인원이 나오고, 팀 일정(직장교육·회식 등)도 올릴 수 있습니다.</Text>}
+      ) : <Text style={{ color: t.ink2, fontSize: 13 }}>{plan ? '날짜를 누르면 그날 빠지는 사람과 남은 인원이 나오고, 팀 일정(직장교육·회식 등)도 올릴 수 있습니다.' : '날짜를 누르면 그날 일정을 보고 올릴 수 있습니다.'}</Text>}
       {sel ? (
         <View style={{ borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, gap: 8 }}>
-          <Text style={{ color: t.ink, fontSize: 14, fontWeight: '700' }}>{sp ? sp[1] + '월 ' + sp[2] + '일' : ''} 팀 일정</Text>
+          <Text style={{ color: t.ink, fontSize: 14, fontWeight: '700' }}>{sp ? sp[1] + '월 ' + sp[2] + '일' : ''} {plan ? '팀 일정' : '모임 일정'}</Text>
           {(ev[sel] || []).length === 0 ? <Text style={{ color: t.ink2, fontSize: 13 }}>올라온 일정이 없습니다. 아래에 이름만 입력하면 됩니다.</Text> : null}
           {(ev[sel] || []).map((e) => {
             const mine = e.id.indexOf('p' + myId + '.') === 0;
@@ -415,7 +417,7 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
             <Text style={{ color: editId ? t.accent : t.ink2, fontSize: 12, fontWeight: editId ? '700' : '400' }}>
               {editId
                 ? '일정 수정 — ' + (() => { const p = polls.find((x) => x.id === editId); const q = p && p.dates[0] ? parse(p.dates[0]) : null; return q ? q[1] + '월 ' + q[2] + '일부터' : ''; })() + ' (시작일은 바뀌지 않습니다)'
-                : '이 날부터 일정 올리기 (팀원 모두에게 보입니다)'}
+                : '이 날부터 일정 올리기 (소모임 모두에게 보입니다)'}
             </Text>
             <TextInput
               value={evName} onChangeText={setEvName} maxLength={30} placeholder="일정 이름을 입력하세요"
@@ -436,8 +438,8 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
           </View>
         </View>
       ) : null}
-      <Text style={{ color: t.ink, fontSize: 13 }}>이 달 한도 초과(보강 필요) <Text style={{ fontWeight: '700', color: t.duty }}>{over}일</Text></Text>
-      <Hint>칸의 숫자는 "빠지는 인원 / 한도 인원"입니다. 연가·병가·교육·파견·기타로 근무에서 빠지는 사람을 모두 셉니다. 한도는 총 인원의 3분의 1(소수점은 버림)로 계산합니다. 소모임에 들어와 달력에 기록한 사람만 셀 수 있으니, 팀 총 인원은 실제 인원에 맞춰 + − 로 고쳐 주세요. 팀원끼리 계획을 미리 입력해 서로 보면서 조율하는 용도입니다.</Hint>
+      {plan ? <Text style={{ color: t.ink, fontSize: 13 }}>이 달 한도 초과(보강 필요) <Text style={{ fontWeight: '700', color: t.duty }}>{over}일</Text></Text> : null}
+      {plan ? <Hint>칸의 숫자는 "빠지는 인원 / 한도 인원"입니다. 연가·병가·교육·파견·기타로 근무에서 빠지는 사람을 모두 셉니다. 한도는 총 인원의 3분의 1(소수점은 버림)로 계산합니다. 소모임에 들어와 달력에 기록한 사람만 셀 수 있으니, 팀 총 인원은 실제 인원에 맞춰 + − 로 고쳐 주세요. 팀원끼리 계획을 미리 입력해 서로 보면서 조율하는 용도입니다.</Hint> : <Hint>모임 일정은 같은 소모임에 들어온 사람 모두에게 보입니다. 모임 날짜를 투표로 정하려면 "모임·투표"를 쓰세요.</Hint>}
     </>
   );
 }
@@ -516,17 +518,18 @@ export function TeamLeaveCard(): React.ReactElement | null {
   const { state, today } = useStore();
   const { view, move, swipe } = useMonth(1);
   if (!state.cloud) return null;
+  const plan = state.cloud.kind !== 'meet';
   const ms = roster(state);
   const others = ms.filter((x) => !x.isMe);
   return (
     <Card style={{ gap: 10 }}>
-      <H2>우리 팀 연가계획표</H2>
+      <H2>{plan ? '우리 팀 연가계획표' : '모임 일정'}</H2>
       {others.length === 0 ? (
-        <Hint>같은 소모임에 팀원이 들어오면 팀원들의 연가·교육·파견 계획을 한 달력에서 보고, 한도(총 인원의 1/3)를 넘는 날을 미리 알 수 있습니다. 위의 소모임 코드로 팀원을 초대하세요.</Hint>
+        <Hint>{plan ? '같은 소모임에 팀원이 들어오면 팀원들의 연가·교육·파견 계획을 한 달력에서 보고, 한도(총 인원의 1/3)를 넘는 날을 미리 알 수 있습니다. 위의 소모임 코드로 팀원을 초대하세요.' : '같은 소모임에 사람이 들어오면 모임 일정을 한 달력에서 함께 볼 수 있습니다. 위의 소모임 코드로 초대하세요.'}</Hint>
       ) : (
         <>
           <MonthNav view={view} move={move} />
-          <View {...swipe}><TeamView all={ms} today={today} y={view.y} m={view.m} code={state.cloud.code} myId={state.cloud.myId} polls={state.polls} /></View>
+          <View {...swipe}><TeamView all={ms} today={today} y={view.y} m={view.m} code={state.cloud.code} myId={state.cloud.myId} polls={state.polls} plan={plan} /></View>
         </>
       )}
     </Card>

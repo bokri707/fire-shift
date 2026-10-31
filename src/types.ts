@@ -44,6 +44,8 @@ export interface CloudInfo {
   myId: string;
   /** 이 소모임에서 쓰는 내 별명 (없으면 기본 별명 nick) */
   nick?: string;
+  /** 소모임 종류(이 폰에서만 적용). team=근무 팀(연가 한도·보강 계산 포함), meet=모임(일정·투표만). 없으면 team */
+  kind?: 'team' | 'meet';
 }
 
 /** 내가 들어가 있는 소모임 하나의 캐시 (지금 보고 있지 않은 소모임) */

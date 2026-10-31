@@ -18,6 +18,7 @@ type Sub = 'team' | 'leave' | 'meet';
 export default function TeamScreen(): React.ReactElement {
   const { state } = useStore();
   const k = state.cloud ? state.cloud.code : 'local';
+  const isMeet = !!state.cloud && state.cloud.kind === 'meet';
   const [sub, setSub] = useState<Sub>('team');
   // 화면을 숨길 뿐 없애지 않아서, 메뉴를 오가도 입력 중이던 내용이 유지됩니다.
   const show = (v: Sub): { display: 'flex' | 'none'; gap: number } => ({ display: sub === v ? 'flex' : 'none', gap: 14 });
@@ -25,7 +26,7 @@ export default function TeamScreen(): React.ReactElement {
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <CloudCard />
       <SegRow<Sub>
-        options={[{ v: 'team', label: '우리 팀' }, { v: 'leave', label: '연가계획표' }, { v: 'meet', label: '모임·투표' }]}
+        options={[{ v: 'team', label: isMeet ? '멤버 근무' : '우리 팀' }, { v: 'leave', label: isMeet ? '모임 일정' : '연가계획표' }, { v: 'meet', label: '모임·투표' }]}
         value={sub}
         onChange={setSub}
       />
@@ -56,6 +57,7 @@ function CloudCard(): React.ReactElement | null {
   const [code, setCode] = useState(urlCode && !alreadyIn ? urlCode : '');
   const [newCodeText, setNewCodeText] = useState(genCode());
   const [team, setTeam] = useState<number>(state.team);
+  const [newKind, setNewKind] = useState<'team' | 'meet'>('team');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
@@ -107,7 +109,7 @@ function CloudCard(): React.ReactElement | null {
       if (!g || !s.cloud) return s;
       const rest = (s.others || []).filter((x) => x.code !== c);
       rest.push({ ...s.cloud, members: s.members, polls: s.polls });
-      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick }, members: g.members, polls: g.polls, others: rest };
+      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick, kind: g.kind }, members: g.members, polls: g.polls, others: rest };
     });
   };
 
@@ -124,7 +126,7 @@ function CloudCard(): React.ReactElement | null {
       if (await getTeam(cd)) { fail('이미 쓰는 코드입니다. 다른 코드로 바꿔 주세요.'); return; }
       await createTeam(cd, nm, teamBase(state));
       markWrite();
-      update((s) => ({ ...enter(s, { code: cd, name: nm, myId: newId(), nick: nk }), nick: s.cloud ? s.nick : nk }));
+      update((s) => ({ ...enter(s, { code: cd, name: nm, myId: newId(), nick: nk, kind: newKind }), nick: s.cloud ? s.nick : nk }));
       setName(''); setNewCodeText(genCode()); setAdding(false);
       setBusy(false);
     } catch (e) {
@@ -188,7 +190,7 @@ function CloudCard(): React.ReactElement | null {
       const rest = s.others || [];
       if (!rest.length) return { ...s, cloud: null, members: [], polls: [], others: [] };
       const g = rest[0];
-      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick }, members: g.members, polls: g.polls, others: rest.slice(1) };
+      return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick, kind: g.kind }, members: g.members, polls: g.polls, others: rest.slice(1) };
     });
     reportErr('');
   };
@@ -200,6 +202,8 @@ function CloudCard(): React.ReactElement | null {
       <SegRow<'create' | 'join'> options={[{ v: 'create', label: '소모임 만들기' }, { v: 'join', label: '코드로 들어가기' }]} value={mode} onChange={(v) => { setMode(v); setErr(''); }} />
       {mode === 'create' ? (
         <View style={{ gap: 8 }}>
+          <Text style={{ color: t.ink2, fontSize: 12 }}>종류</Text>
+          <SegRow<'team' | 'meet'> options={[{ v: 'team', label: '근무 팀' }, { v: 'meet', label: '모임 (러닝·가족 등)' }]} value={newKind} onChange={setNewKind} />
           <Text style={{ color: t.ink2, fontSize: 12 }}>소모임 이름</Text>
           <TextInput value={name} onChangeText={(v: string) => setName(v)} maxLength={20} placeholderTextColor={t.ink2} style={field} />
           <Text style={{ color: t.ink2, fontSize: 12 }}>초대 코드 (한글 가능, 직접 바꿔도 됩니다)</Text>
@@ -255,6 +259,13 @@ function CloudCard(): React.ReactElement | null {
           <Text style={{ color: t.ink2, fontSize: 12 }}>{c.name} · 초대 코드</Text>
           <Text selectable style={{ color: t.ink, fontSize: 26, fontWeight: '700', letterSpacing: 1 }}>{c.code}</Text>
           <Hint>이 코드를 동료에게 알려 주세요. 코드로 들어와 별명과 팀만 입력하면 됩니다. 아래의 멤버·쉬는 날·투표는 지금 고른 소모임 기준입니다.</Hint>
+          <Text style={{ color: t.ink2, fontSize: 12 }}>이 소모임의 종류</Text>
+          <SegRow<'team' | 'meet'>
+            options={[{ v: 'team', label: '근무 팀' }, { v: 'meet', label: '모임' }]}
+            value={c.kind === 'meet' ? 'meet' : 'team'}
+            onChange={(v) => update((s) => (s.cloud ? { ...s, cloud: { ...s.cloud, kind: v } } : s))}
+          />
+          <Hint>근무 팀은 연가 한도·보강 계산과 육아시간을 보여주고, 모임은 일정과 투표만 보여줍니다. 이 폰에서만 적용됩니다.</Hint>
           <Text style={{ color: t.ink2, fontSize: 12 }}>이 소모임에서 쓰는 내 별명</Text>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput value={myNick} onChangeText={(v: string) => { setMyNick(v); setNickMsg(''); }} maxLength={12} placeholderTextColor={t.ink2} style={[field, { flex: 1 }]} />
