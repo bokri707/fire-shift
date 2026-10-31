@@ -1,5 +1,6 @@
 import { AppState, Ex, Kind, Pattern, Poll } from '../types';
 import { fromIdx, idx, wdOf } from './date';
+import { isEventPoll } from './events';
 import { holName } from './holidays';
 
 export const LBL: Record<Kind, string> = { duty: '당직', off: '비번', leave: '연가', edu: '교육', swap: '맞교대' };
@@ -213,7 +214,7 @@ export interface MeetItem { id: string; final: string; title: string; group: str
 export function allMeets(st: AppState): MeetItem[] {
   const out: MeetItem[] = [];
   const add = (group: string, polls: Poll[]): void => {
-    polls.forEach((p) => { if (p.final) out.push({ id: p.id, final: p.final, title: p.title, group }); });
+    polls.forEach((p) => { if (p.final && !isEventPoll(p)) out.push({ id: p.id, final: p.final, title: p.title, group }); });
   };
   add(st.cloud ? st.cloud.name : '', st.polls);
   (st.others || []).forEach((g) => add(g.name, g.polls));
