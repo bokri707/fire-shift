@@ -66,6 +66,7 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
   };
 
   return (
+    <HelpScope>
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <SetupCard onDone={onDone} />
 
