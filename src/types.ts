@@ -72,6 +72,8 @@ export interface AppState {
   polls: Poll[];
   /** 이 폰에서 올린 투표 id (확정은 올린 사람만) */
   myPolls?: string[];
+  /** 이 폰에만 저장하는 내 일정 (서버에 올리지 않음) */
+  myEvents?: { id: string; name: string; dates: string[] }[];
   cloud: CloudInfo | null;
   /** 설정에서 켠 기능 (소모임에 들어가 있으면 팀·모임은 저절로 보입니다) */
   teamOn?: boolean;

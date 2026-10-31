@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, PanResponder, Platform, Pressable, Text, View, ViewStyle } from 'react-native';
 import { WD, daysInMonth, firstWd, iso, parse } from './lib/date';
 import { holName } from './lib/holidays';
-import { GROUP_COLORS, eventsByDate } from './lib/events';
+import { GROUP_COLORS, PERSONAL_COLOR, eventsByDate, personalByDate } from './lib/events';
 import { Poll } from './types';
 import { LBL, allMeets, eff, hasManyGroups, mEff } from './lib/shift';
 import { spouseOf, useStore } from './store';
@@ -39,6 +39,8 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
   const { state, today } = useStore();
   const [view, setView] = useState(() => { const p = parse(today); return { y: p[0], m: p[1] }; });
   const [gridW, setGridW] = useState(0);
+  const [listMode, setListMode] = useState(false);
+  const [listAll, setListAll] = useState(false);
 
   useEffect(() => {
     if (focusDate) { const p = parse(focusDate); setView({ y: p[0], m: p[1] }); }
@@ -88,6 +90,10 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
       (evs[d] = evs[d] || []).push({ name: x.name, color: many ? gc : x.color, group: many ? g.name : '', kind: x.kind });
     }));
   });
+  const pby = personalByDate(state.myEvents);
+  Object.keys(pby).forEach((d) => pby[d].forEach((x) => {
+    (evs[d] = evs[d] || []).push({ name: x.name, color: PERSONAL_COLOR, group: many ? '내 일정' : '', kind: 'plain' });
+  }));
   let careAny = false;
   const evNames: { d: number; name: string; color: string; group: string }[] = [];
   const meetList: { d: number; name: string }[] = [];
@@ -165,14 +171,96 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
     );
   }
 
+  // 월간 목록: 날짜 순서대로 위에서 아래로 나열합니다.
+  const canList = !bare && !decorate;
+  const listRows: React.ReactElement[] = [];
+  if (listMode && canList) {
+    for (let d = 1; d <= n; d++) {
+      const s = iso(view.y, view.m, d);
+      const e = eff(state, s);
+      const wk = (first + d - 1) % 7;
+      const hn = holName(s);
+      const evl = evs[s] || [];
+      const mtl = meets[s] || [];
+      const scare = spouse ? mEff(spouse, s).care : '';
+      const scText = scare === 'in' ? '출근 때' : scare === 'out' ? '퇴근 때' : scare === 'both' ? '출근·퇴근' : '';
+      const hasAny = evl.length > 0 || mtl.length > 0 || !!hn || !!scText;
+      if (!listAll && !hasAny) continue;
+      const isToday = s === today;
+      const c = kindColors(t, e.kind);
+      const dayColor = hn || wk === 0 || wk === 6 ? t.sun : t.ink;
+      listRows.push(
+        <Pressable
+          key={s}
+          accessibilityRole="button"
+          accessibilityLabel={view.m + '월 ' + d + '일 ' + e.label}
+          onPress={() => onPressDate(s)}
+          style={{
+            flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 9, paddingHorizontal: 6,
+            borderTopWidth: 1, borderTopColor: t.line, borderRadius: isToday ? 6 : 0,
+            borderWidth: isToday ? 2 : 0, borderColor: TODAY,
+          }}
+        >
+          <View style={{ width: 44, alignItems: 'center' }}>
+            <Text style={{ color: dayColor, fontSize: 18, fontWeight: '700' }}>{d}</Text>
+            <Text style={{ color: dayColor, fontSize: 11 }}>{WD[wk]}</Text>
+          </View>
+          <View style={{
+            minWidth: 30, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, alignItems: 'center',
+            backgroundColor: e.kind === 'duty' ? t.duty : e.kind === 'off' ? 'transparent' : c.bg,
+          }}>
+            <Text style={{ fontSize: 13, fontWeight: e.kind === 'off' ? '500' : '700', color: e.kind === 'duty' ? t.onDuty : e.kind === 'off' ? t.ink2 : c.fg }}>
+              {e.label === '당직' ? '당' : e.label === '비번' ? '비' : e.label}
+            </Text>
+          </View>
+          <View style={{ flex: 1, gap: 3 }}>
+            {hn ? <Text style={{ color: t.sun, fontSize: 14, fontWeight: '700' }}>{hn}</Text> : null}
+            {mtl.map((m, i) => (
+              <Text key={'m' + i} style={{ color: t.ink, fontSize: 14 }}><Text style={{ color: t.meet, fontWeight: '700' }}>모임 </Text>{m.g ? m.g + ' · ' : ''}{m.t}</Text>
+            ))}
+            {evl.filter((x) => x.kind !== 'meet').map((x, i) => (
+              <Text key={'e' + i} style={{ color: t.ink, fontSize: 14 }}><Text style={{ color: x.color, fontWeight: '700' }}>● </Text>{x.group ? x.group + ' · ' : ''}{x.name}</Text>
+            ))}
+            {e.sub ? <Text style={{ color: t.ink2, fontSize: 12.5 }}>{e.sub}</Text> : null}
+            {scText ? <Text style={{ color: CARE_SPOUSE, fontSize: 12.5 }}>{spouse ? spouse.name : '배우자'} 육아시간({scText})</Text> : null}
+          </View>
+        </Pressable>,
+      );
+    }
+  }
+
   const body = (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <Btn small ghost label="‹" onPress={() => move(-1)} style={{ minWidth: 40 }} />
         <Text style={{ flex: 1, color: t.ink, fontSize: 21, fontWeight: '600' }}>{view.y}년 {view.m}월</Text>
+        {canList ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={listMode ? '달력으로 보기' : '월간 일정 목록으로 보기'}
+            onPress={() => setListMode((v) => !v)}
+            style={{ width: 40, height: 36, borderRadius: 8, borderWidth: 1, borderColor: listMode ? t.ink : t.line, backgroundColor: listMode ? t.ink : 'transparent', alignItems: 'center', justifyContent: 'center', gap: 3 }}
+          >
+            {[0, 1, 2].map((i) => <View key={i} style={{ width: 18, height: 2.5, borderRadius: 2, backgroundColor: listMode ? t.surface : t.ink }} />)}
+          </Pressable>
+        ) : null}
         <Btn small ghost label="오늘" onPress={() => { const p = parse(today); setView({ y: p[0], m: p[1] }); }} />
         <Btn small ghost label="›" onPress={() => move(1)} style={{ minWidth: 40 }} />
       </View>
+      {listMode && canList ? (
+        <View>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
+            <Pressable onPress={() => setListAll(false)} style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: t.line, backgroundColor: !listAll ? t.ink : 'transparent' }}>
+              <Text style={{ fontSize: 13, color: !listAll ? t.surface : t.ink }}>일정만</Text>
+            </Pressable>
+            <Pressable onPress={() => setListAll(true)} style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: t.line, backgroundColor: listAll ? t.ink : 'transparent' }}>
+              <Text style={{ fontSize: 13, color: listAll ? t.surface : t.ink }}>전체 날짜</Text>
+            </Pressable>
+          </View>
+          {listRows.length ? listRows : <Text style={{ color: t.ink2, fontSize: 14, paddingVertical: 16, textAlign: 'center' }}>이 달에는 등록된 일정이 없습니다.</Text>}
+        </View>
+      ) : null}
+      <View style={listMode && canList ? { display: 'none' } : undefined}>
       <View onLayout={(ev: LayoutChangeEvent) => setGridW(ev.nativeEvent.layout.width)} style={webTouch} {...swipe.panHandlers}>
         <View style={{ flexDirection: 'row', gap: GAP, marginBottom: 4 }}>
           {WD.map((w, i) => (
@@ -186,6 +274,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
           for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7));
           return weeks.map((w, wi) => <View key={'w' + wi} style={{ flexDirection: 'row', columnGap: GAP }}>{w}</View>);
         })()}
+      </View>
       </View>
       <Help><Text style={{ color: t.ink2, fontSize: 11.5, marginTop: 2 }}>달력을 좌우로 밀면 달이 바뀝니다.</Text></Help>
       {careAny ? (
@@ -201,27 +290,6 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
             </View>
           ) : null}
           <Help><Text style={{ color: t.ink2, fontSize: 12 }}>칩 왼쪽은 출근 때, 오른쪽은 퇴근 때</Text></Help>
-        </View>
-      ) : null}
-      {meetList.length ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 }}>
-          {meetList.map((h, i) => (
-            <Text key={i} style={{ color: t.ink2, fontSize: 12.5 }}><Text style={{ color: t.meet, fontWeight: '700' }}>{h.d}일 모임 </Text>{h.name}</Text>
-          ))}
-        </View>
-      ) : null}
-      {evNames.length ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 }}>
-          {evNames.map((h, i) => (
-            <Text key={i} style={{ color: t.ink2, fontSize: 12.5 }}><Text style={{ color: h.color, fontWeight: '700' }}>● {h.d}일 </Text>{h.group ? h.group + ' · ' : ''}{h.name}</Text>
-          ))}
-        </View>
-      ) : null}
-      {hols.length ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 }}>
-          {hols.map((h) => (
-            <Text key={h.d} style={{ color: t.ink2, fontSize: 12.5 }}><Text style={{ color: t.sun, fontWeight: '700' }}>{h.d}일 </Text>{h.name}</Text>
-          ))}
         </View>
       ) : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 12 }}>

@@ -5,11 +5,12 @@ import {
 import { WD, fromIdx, idx, parse, wdOf } from '../lib/date';
 import { downloadIcs, dutyIcs } from '../lib/ics';
 import { holName } from '../lib/holidays';
-import { groupEvents } from '../lib/events';
+import { deletePoll, insertPoll, updatePoll } from '../cloud';
+import { PERSONAL_COLOR, eventTitle, groupEvents, personalByDate } from '../lib/events';
 import { LBL, OFF_LABELS, WORK_LABELS, allMeets, dutyTeam, eff, hasManyGroups, isThree, ledger, mEff, posOf } from '../lib/shift';
 import MonthCalendar from '../MonthCalendar';
 import SetupCard from '../SetupCard';
-import { spouseOf, useStore } from '../store';
+import { markWrite, newId, spouseOf, useStore } from '../store';
 import { useTheme } from '../theme';
 import { Btn, Card, Chip, H2, Hint, HelpScope, Pill, SegRow } from '../ui';
 
@@ -108,7 +109,7 @@ type DraftType = 'none' | 'leave' | 'edu' | 'dispatch' | 'etc' | 'swap' | 'cover
 
 function EditorModal({ date, onClose }: { date: string; onClose: () => void }): React.ReactElement {
   const t = useTheme();
-  const { state, update } = useStore();
+  const { state, update, reportErr } = useStore();
   const e = eff(state, date);
   const p = parse(date);
   const cur = state.ex[date];
@@ -121,6 +122,44 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
   const hn = holName(date);
   const dayEv = groupEvents(state)[date] || [];
   const dayMeets = allMeets(state).filter((m) => m.final === date);
+  const dayMine = personalByDate(state.myEvents)[date] || [];
+  const [evName, setEvName] = useState('');
+  const [evDays, setEvDays] = useState(1);
+  const [evTo, setEvTo] = useState('me');
+  const [evOpen, setEvOpen] = useState(false);
+  const [delId, setDelId] = useState<string | null>(null);
+  const targets: { code: string; name: string; myId: string }[] = [];
+  if (state.cloud) targets.push({ code: state.cloud.code, name: state.cloud.name, myId: state.cloud.myId });
+  (state.others || []).forEach((g) => targets.push({ code: g.code, name: g.name, myId: g.myId }));
+  const addEvent = (): void => {
+    const nm = evName.trim();
+    if (!nm) { setErr('일정 이름을 입력하세요.'); return; }
+    const days: string[] = [];
+    for (let i = 0; i < evDays; i++) days.push(fromIdx(idx(date) + i));
+    if (evTo === 'me') {
+      update((s) => ({ ...s, myEvents: [...(s.myEvents || []), { id: newId(), name: nm, dates: days }] }));
+    } else {
+      const g = targets.find((x) => x.code === evTo);
+      if (!g) return;
+      const id = 'p' + g.myId + '.' + newId();
+      const title = eventTitle('plain', nm);
+      const poll = { id, title, dates: days, final: days[0], at: Date.now(), votes: {} };
+      update((s) => {
+        if (s.cloud && s.cloud.code === g.code) return { ...s, myPolls: [id, ...(s.myPolls || [])], polls: [poll, ...s.polls] };
+        return { ...s, myPolls: [id, ...(s.myPolls || [])], others: (s.others || []).map((o) => (o.code === g.code ? { ...o, polls: [poll, ...o.polls] } : o)) };
+      });
+      markWrite();
+      insertPoll(g.code, { id, title, dates: days })
+        .then(() => { markWrite(); return updatePoll(g.code, id, { final: days[0] }); })
+        .catch(() => reportErr('일정을 서버에 올리지 못했습니다.'));
+    }
+    setEvName(''); setEvDays(1); setEvOpen(false); setErr('');
+  };
+  const delMine = (id: string): void => {
+    if (delId !== id) { setDelId(id); setTimeout(() => setDelId((c) => (c === id ? null : c)), 4000); return; }
+    setDelId(null);
+    update((s) => ({ ...s, myEvents: (s.myEvents || []).filter((x) => x.id !== id) }));
+  };
   const sp = spouseOf(state);
   const spCare = sp ? mEff(sp, date).care : '';
   const spText = spCare === 'in' ? '출근 때' : spCare === 'out' ? '퇴근 때' : spCare === 'both' ? '출근·퇴근 모두' : '';
@@ -157,9 +196,16 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
               </View>
             ) : null}
           </View>
-          {dayEv.length || dayMeets.length || spText ? (
+          {dayEv.length || dayMeets.length || spText || dayMine.length ? (
             <View style={{ gap: 6, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: t.line }}>
               <Text style={{ color: t.ink2, fontSize: 12 }}>이 날 일정</Text>
+              {dayMine.map((x) => (
+                <Pressable key={x.id} onPress={() => delMine(x.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: PERSONAL_COLOR }} />
+                  <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}>{x.name} <Text style={{ color: t.ink2, fontSize: 12 }}>(내 폰)</Text></Text>
+                  <Text style={{ color: delId === x.id ? t.sun : t.ink2, fontSize: 12, fontWeight: delId === x.id ? '700' : '400' }}>{delId === x.id ? '한 번 더 눌러 삭제' : '삭제'}</Text>
+                </Pressable>
+              ))}
               {dayEv.map((x, i) => (
                 <View key={'e' + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: x.color }} />
@@ -189,6 +235,31 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
               </View>
             </View>
           ) : null}
+          {evOpen ? (
+            <View style={{ gap: 8, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: t.line }}>
+              <Text style={{ color: t.ink2, fontSize: 12 }}>일정 이름</Text>
+              <TextInput
+                value={evName} onChangeText={(v: string) => { setEvName(v); setErr(''); }} maxLength={20}
+                style={{ borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, color: t.ink }}
+                placeholderTextColor={t.ink2}
+              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}>며칠 동안: <Text style={{ fontWeight: '800' }}>{evDays}일</Text></Text>
+                <Btn small ghost label="−" onPress={() => setEvDays(Math.max(1, evDays - 1))} style={{ minWidth: 40 }} />
+                <Btn small ghost label="+" onPress={() => setEvDays(Math.min(14, evDays + 1))} style={{ minWidth: 40 }} />
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <Chip label="내 폰에만" on={evTo === 'me'} onPress={() => setEvTo('me')} />
+                {targets.map((g) => <Chip key={g.code} label={g.name + '에 올리기'} on={evTo === g.code} onPress={() => setEvTo(g.code)} />)}
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Btn small label="일정 추가" onPress={addEvent} style={{ flex: 1 }} />
+                <Btn small ghost label="취소" onPress={() => { setEvOpen(false); setErr(''); }} style={{ flex: 1 }} />
+              </View>
+            </View>
+          ) : (
+            <Btn small ghost label="+ 이 날 일정 추가" onPress={() => setEvOpen(true)} />
+          )}
           <SegRow<DraftType>
             options={[{ v: 'none', label: '기본' }, { v: 'leave', label: '연가' }, { v: 'edu', label: '교육' }, { v: 'dispatch', label: '출장' }, { v: 'etc', label: '기타' }]}
             value={type}

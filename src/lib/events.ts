@@ -81,3 +81,12 @@ export function groupEvents(st: AppState): Record<string, GroupEv[]> {
   });
   return out;
 }
+
+/** 내 폰에만 있는 개인 일정의 점 색 */
+export const PERSONAL_COLOR = '#475569';
+
+export function personalByDate(list: { id: string; name: string; dates: string[] }[] | undefined): Record<string, { id: string; name: string }[]> {
+  const out: Record<string, { id: string; name: string }[]> = {};
+  (list || []).forEach((e) => e.dates.forEach((d) => { (out[d] = out[d] || []).push({ id: e.id, name: e.name }); }));
+  return out;
+}
