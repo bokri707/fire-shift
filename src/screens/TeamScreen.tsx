@@ -257,17 +257,19 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
   const c = curGroup;
   return (
     <Card style={{ gap: 10 }}>
-      <H2>{isMeet ? '내 모임' : '내 팀'}</H2>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <H2>{isMeet ? '내 모임' : '내 팀'}</H2>
+        {adding ? null : (
+          <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityLabel={open ? '설정 접기' : '설정 펼치기'} accessibilityState={{ expanded: open }} hitSlop={12}>
+            <Text style={{ color: t.accent, fontSize: 18, fontWeight: '700' }}>{open ? '▲' : '▼'}</Text>
+          </Pressable>
+        )}
+      </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {chips.map((g) => <Chip key={g.code} label={g.name} on={!adding && g.code === c.code} onPress={() => switchTo(g.code)} />)}
         <Chip label="＋ 추가" on={adding} onPress={() => { setAdding(!adding); setErr(''); }} />
       </View>
-      {adding ? form : (
-        <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 }}>
-          <Text style={{ color: t.accent, fontSize: 14, fontWeight: '600' }}>{c.name} · 초대 코드·종류·별명</Text>
-          <Text style={{ color: t.accent, fontSize: 13, fontWeight: '600' }}>{open ? '접기 ▲' : '펼치기 ▼'}</Text>
-        </Pressable>
-      )}
+      {adding ? form : null}
       {!adding && open ? (
         <View style={{ gap: 8 }}>
           <Text style={{ color: t.ink2, fontSize: 12 }}>{c.name} · 초대 코드</Text>
