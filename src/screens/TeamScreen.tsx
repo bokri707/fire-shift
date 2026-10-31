@@ -67,6 +67,8 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
+  /** 초대 코드·종류·별명 설정을 펼쳐 보는지 (한 번 정하면 거의 볼 일이 없어서 평소엔 접어 둡니다) */
+  const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
   const [resumeId, setResumeId] = useState('');
   const curGroup = state.cloud && groupKind(state.cloud) === kind ? state.cloud : null;
@@ -128,7 +130,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
       await createTeam(cd, nm, teamBase(state), kind);
       markWrite();
       update((s) => ({ ...enter(s, { code: cd, name: nm, myId: newId(), nick: nk, kind }), nick: s.cloud ? s.nick : nk }));
-      setName(''); setNewCodeText(genCode()); setAdding(false);
+      setName(''); setNewCodeText(genCode()); setAdding(false); setOpen(true);
       setBusy(false);
     } catch (e) {
       fail('서버에 연결하지 못했습니다. 인터넷 연결과 접속 정보를 확인하세요.');
@@ -174,7 +176,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
         }
         return { ...enter({ ...base, ex, nick: s.cloud ? s.nick : nk, configured: true }, { code: tm.code, name: tm.name, myId: mine ? mine.id : newId(), nick: nk, kind: tm.kind === 'meet' ? 'meet' : 'team', pair: tm.pair === true }) };
       });
-      setCode(''); setAdding(false); setResumeId(''); clearCodeFromUrl();
+      setCode(''); setAdding(false); setOpen(true); setResumeId(''); clearCodeFromUrl();
       setBusy(false);
     } catch (e) {
       fail('서버에 연결하지 못했습니다. 인터넷 연결과 접속 정보를 확인하세요.');
@@ -261,6 +263,12 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
         <Chip label="＋ 추가" on={adding} onPress={() => { setAdding(!adding); setErr(''); }} />
       </View>
       {adding ? form : (
+        <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 }}>
+          <Text style={{ color: t.accent, fontSize: 14, fontWeight: '600' }}>{c.name} · 초대 코드·종류·별명</Text>
+          <Text style={{ color: t.accent, fontSize: 13, fontWeight: '600' }}>{open ? '접기 ▲' : '펼치기 ▼'}</Text>
+        </Pressable>
+      )}
+      {!adding && open ? (
         <View style={{ gap: 8 }}>
           <Text style={{ color: t.ink2, fontSize: 12 }}>{c.name} · 초대 코드</Text>
           <Text selectable style={{ color: t.ink, fontSize: 26, fontWeight: '700', letterSpacing: 1 }}>{c.code}</Text>
@@ -304,7 +312,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
             <Btn small ghost label={armed ? '한 번 더 눌러 나가기' : '이 소모임에서 나가기'} onPress={leave} />
           </View>
         </View>
-      )}
+      ) : null}
     </Card>
   );
 }
