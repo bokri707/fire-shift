@@ -159,7 +159,6 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
             {ev.filter((x) => x.kind !== 'meet').slice(0, 3).map((x, i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: x.color }} />)}
           </View>
         ) : null}
-        {e.e && e.e.memo ? <View style={{ position: 'absolute', bottom: 5, right: 5, width: 5, height: 5, borderRadius: 3, backgroundColor: c.fg }} /> : null}
       </Pressable>,
     );
   }
