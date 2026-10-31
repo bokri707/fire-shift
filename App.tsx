@@ -28,6 +28,7 @@ const TABS: { v: Tab; label: string }[] = [
 function Shell(): React.ReactElement {
   const t = useTheme();
   const { state, update, today } = useStore();
+  const [alarmN, setAlarmN] = useState(0);
   const [tab, setTab] = useState<Tab>(codeFromUrl() ? 'team' : 'cal');
   useEffect(() => { if (Platform.OS === 'web') autoLeaveKakao(); }, []);
 
@@ -99,11 +100,15 @@ function Shell(): React.ReactElement {
         ))}
       </View>
       <View style={{ flex: 1 }}>
-        <View style={{ flex: 1, display: cur === 'cal' ? 'flex' : 'none' }}><CalendarScreen /></View>
+        <View style={{ flex: 1, display: cur === 'cal' ? 'flex' : 'none' }}><CalendarScreen onGo={(k) => {
+          if (k === 'meet') { update((s2) => ({ ...s2, meetOn: true })); go('meet'); return; }
+          if (k === 'alarm') setAlarmN((n) => n + 1);
+          go('set');
+        }} /></View>
         <View style={{ flex: 1, display: cur === 'team' ? 'flex' : 'none' }}><TeamScreen kind="team" /></View>
         <View style={{ flex: 1, display: cur === 'meet' ? 'flex' : 'none' }}><TeamScreen kind="meet" /></View>
         <View style={{ flex: 1, display: cur === 'pair' ? 'flex' : 'none' }}><PairScreen /></View>
-        <View style={{ flex: 1, display: cur === 'set' ? 'flex' : 'none' }}><SettingsScreen onDone={() => go('cal')} /></View>
+        <View style={{ flex: 1, display: cur === 'set' ? 'flex' : 'none' }}><SettingsScreen onDone={() => go('cal')} focusAlarm={alarmN} /></View>
       </View>
       <AdBanner />
     </KeyboardAvoidingView>
