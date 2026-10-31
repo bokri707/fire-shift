@@ -2,7 +2,7 @@
 
 소방 교대근무자를 위한 근무 달력 + 소모임(팀) 공유 앱. Expo / React Native로 만들었고 웹과 안드로이드로 나갑니다.
 
-- 웹 주소: https://qkrrhksdud1.workers.dev (Cloudflare Workers)
+- 웹 주소: https://fire-shift.qkrrhksdud1.workers.dev (Cloudflare Workers)
 - 서버: Supabase (표와 함수는 `supabase/schema.sql`)
 - 저장소: github.com/bokri707/fire-shift (main에 올리면 웹이 자동 배포됩니다)
 
