@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, PanResponder, Platform, Pressable, Text, View, ViewStyle } from 'react-native';
 import { WD, daysInMonth, firstWd, iso, parse } from './lib/date';
 import { holName } from './lib/holidays';
+import { eventsByDate } from './lib/events';
 import { LBL, allMeets, eff, hasManyGroups } from './lib/shift';
 import { useStore } from './store';
 import { kindColors, useTheme } from './theme';
@@ -66,6 +67,9 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
   const meets: Record<string, { t: string; g: string }[]> = {};
   const many = hasManyGroups(state);
   allMeets(state).forEach((p) => { if (!meets[p.final]) meets[p.final] = []; meets[p.final].push({ t: p.title, g: many ? p.group : '' }); });
+  // 팀 일정(모임과 별개)은 칸 왼쪽 아래에 작은 색 점으로 표시합니다.
+  const evs = eventsByDate(state.polls.concat(...(state.others || []).map((g) => g.polls)));
+  const evNames: { d: number; name: string; color: string }[] = [];
   const meetList: { d: number; name: string }[] = [];
   for (let i = 0; i < first; i++) cells.push(<View key={'b' + i} style={{ width: cellW, height: 4 }} />);
   for (let d = 1; d <= n; d++) {
@@ -78,6 +82,8 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
     const c = kindColors(t, e.kind);
     const deco = decorate ? decorate(s) : null;
     const mt = meets[s];
+    const ev = evs[s];
+    if (ev) ev.filter((x) => x.kind !== 'meet').forEach((x) => evNames.push({ d, name: x.name, color: x.color }));
     if (mt) mt.forEach((m) => meetList.push({ d, name: m.g ? m.g + ' · ' + m.t : m.t }));
     const chipText = e.label === '당직' ? '당' : e.label === '비번' ? '비' : e.label;
     const sol = deco && deco.solid ? deco.solid : '';
@@ -119,6 +125,11 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
           </Text>
         )}
         {sol ? <Text style={{ position: 'absolute', top: 2, right: 3, color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>✓</Text> : null}
+        {ev && ev.some((x) => x.kind !== 'meet') ? (
+          <View style={{ position: 'absolute', bottom: 5, left: 5, flexDirection: 'row', gap: 2 }}>
+            {ev.filter((x) => x.kind !== 'meet').slice(0, 3).map((x, i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: x.color }} />)}
+          </View>
+        ) : null}
         {e.e && e.e.memo ? <View style={{ position: 'absolute', bottom: 5, right: 5, width: 5, height: 5, borderRadius: 3, backgroundColor: c.fg }} /> : null}
       </Pressable>,
     );
@@ -151,6 +162,13 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 }}>
           {meetList.map((h, i) => (
             <Text key={i} style={{ color: t.ink2, fontSize: 12.5 }}><Text style={{ color: t.meet, fontWeight: '700' }}>{h.d}일 모임 </Text>{h.name}</Text>
+          ))}
+        </View>
+      ) : null}
+      {evNames.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 }}>
+          {evNames.map((h, i) => (
+            <Text key={i} style={{ color: t.ink2, fontSize: 12.5 }}><Text style={{ color: h.color, fontWeight: '700' }}>● {h.d}일 </Text>{h.name}</Text>
           ))}
         </View>
       ) : null}
