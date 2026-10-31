@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { WD, daysInMonth, firstWd, fromIdx, idx, iso, parse } from './lib/date';
 import { deletePoll, insertPoll, updatePoll } from './cloud';
-import { EV_COLOR, eventTitle, eventsByDate } from './lib/events';
+import { EV_COLOR, eventTitle, eventsByDate, parseEvent } from './lib/events';
 import { MEff, Person, mEff, roster } from './lib/shift';
 import { markWrite, newId, useStore } from './store';
 import { Poll } from './types';
@@ -189,6 +189,8 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
   const [evName, setEvName] = useState('');
   const [evDays, setEvDays] = useState(1);
   const [delId, setDelId] = useState<string | null>(null);
+  /** 수정 중인 팀 일정 id (없으면 새 일정 올리기) */
+  const [editId, setEditId] = useState<string | null>(null);
   const meP = all.find((x) => x.isMe) as Person;
   const teamNos = Array.from(new Set(all.map((x) => x.team))).sort((a, b) => a - b);
   const [tm, setTm] = useState<number>(meP.team);
@@ -231,10 +233,34 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
   const delEvent = (id: string): void => {
     if (delId !== id) { setDelId(id); setTimeout(() => setDelId((c) => (c === id ? null : c)), 4000); return; }
     setDelId(null);
+    if (editId === id) { setEditId(null); setEvName(''); setEvDays(1); }
     update((s) => ({ ...s, polls: s.polls.filter((x) => x.id !== id) }));
     markWrite();
     deletePoll(code, id).catch(() => reportErr('서버에서 지우지 못했습니다.'));
   };
+  const startEdit = (id: string, name: string): void => {
+    const p = polls.find((x) => x.id === id);
+    if (!p) return;
+    setEditId(id); setEvName(name); setEvDays(Math.min(Math.max(p.dates.length, 1), 14));
+  };
+  const cancelEdit = (): void => { setEditId(null); setEvName(''); setEvDays(1); };
+  /** 이름과 기간만 고칩니다. 시작일은 그대로 두고, 기간(며칠 동안)에 맞춰 날짜를 다시 만듭니다. */
+  const saveEdit = (): void => {
+    if (!editId) return;
+    const p = polls.find((x) => x.id === editId);
+    if (!p || !p.dates.length) { cancelEdit(); return; }
+    const kind = parseEvent(p)?.kind ?? 'plain';
+    const title = eventTitle(kind, evName.trim() || '일정');
+    const days: string[] = [];
+    for (let i = 0; i < evDays; i++) days.push(fromIdx(idx(p.dates[0]) + i));
+    const id = editId;
+    update((s) => ({ ...s, polls: s.polls.map((x) => (x.id === id ? { ...x, title, dates: days } : x)) }));
+    markWrite();
+    updatePoll(code, id, { title, dates: days }).catch(() => reportErr('일정을 서버에 저장하지 못했습니다.'));
+    cancelEdit();
+  };
+  // 다른 날짜를 누르면 수정 중이던 입력을 닫습니다.
+  useEffect(() => { if (editId) { setEditId(null); setEvName(''); setEvDays(1); } }, [sel]);
 
   // 사람별 색: 이름순으로 정해서 모든 사람의 폰에서 같은 색이 됩니다.
   const sorted = all.slice().sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
@@ -369,11 +395,14 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
           {(ev[sel] || []).length === 0 ? <Text style={{ color: t.ink2, fontSize: 13 }}>올라온 일정이 없습니다. 아래에 이름만 입력하면 됩니다.</Text> : null}
           {(ev[sel] || []).map((e) => {
             const mine = e.id.indexOf('p' + myId + '.') === 0;
+            const canEdit = mine && e.kind !== 'meet';
             return (
               <View key={e.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ backgroundColor: e.color, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{e.label}</Text></View>
-                <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}>{e.name}</Text>
-                {mine && e.kind !== 'meet' ? (
+                <Pressable disabled={!canEdit} onPress={() => startEdit(e.id, e.name)} accessibilityRole="button" style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ backgroundColor: e.color, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{e.label}</Text></View>
+                  <Text style={{ flex: 1, color: editId === e.id ? t.accent : t.ink, fontSize: 14, fontWeight: editId === e.id ? '700' : '400' }}>{e.name}</Text>
+                </Pressable>
+                {canEdit ? (
                   <Pressable onPress={() => delEvent(e.id)} accessibilityRole="button">
                     <Text style={{ color: delId === e.id ? t.bad : t.ink2, fontSize: 12.5 }}>{delId === e.id ? '한 번 더 눌러 삭제' : '삭제'}</Text>
                   </Pressable>
@@ -381,8 +410,13 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
               </View>
             );
           })}
+          {(ev[sel] || []).some((e) => e.kind !== 'meet' && e.id.indexOf('p' + myId + '.') === 0) ? <Text style={{ color: t.ink2, fontSize: 12 }}>내가 올린 일정은 이름을 눌러 수정할 수 있습니다.</Text> : null}
           <View style={{ gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.line }}>
-            <Text style={{ color: t.ink2, fontSize: 12 }}>이 날부터 일정 올리기 (팀원 모두에게 보입니다)</Text>
+            <Text style={{ color: editId ? t.accent : t.ink2, fontSize: 12, fontWeight: editId ? '700' : '400' }}>
+              {editId
+                ? '일정 수정 — ' + (() => { const p = polls.find((x) => x.id === editId); const q = p && p.dates[0] ? parse(p.dates[0]) : null; return q ? q[1] + '월 ' + q[2] + '일부터' : ''; })() + ' (시작일은 바뀌지 않습니다)'
+                : '이 날부터 일정 올리기 (팀원 모두에게 보입니다)'}
+            </Text>
             <TextInput
               value={evName} onChangeText={setEvName} maxLength={30} placeholder="일정 이름을 입력하세요"
               placeholderTextColor={t.ink2}
@@ -393,7 +427,12 @@ function TeamView({ all, today, y, m, code, myId, polls }: { all: Person[]; toda
               <Btn small ghost label="−" onPress={() => setEvDays(Math.max(1, evDays - 1))} style={{ minWidth: 40 }} />
               <Btn small ghost label="+" onPress={() => setEvDays(Math.min(14, evDays + 1))} style={{ minWidth: 40 }} />
             </View>
-            <Btn label="일정 올리기" onPress={addEvent} />
+            {editId ? (
+              <View style={{ gap: 8 }}>
+                <Btn label="수정 저장" onPress={saveEdit} />
+                <Btn small ghost label="취소" onPress={cancelEdit} />
+              </View>
+            ) : <Btn label="일정 올리기" onPress={addEvent} />}
           </View>
         </View>
       ) : null}
