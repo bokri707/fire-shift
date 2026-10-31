@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { LayoutChangeEvent, Pressable, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, PanResponder, Platform, Pressable, Text, View, ViewStyle } from 'react-native';
 import { WD, daysInMonth, firstWd, iso, parse } from './lib/date';
 import { holName } from './lib/holidays';
 import { LBL, allMeets, eff, hasManyGroups } from './lib/shift';
@@ -38,12 +38,26 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
 
   const cellW = gridW > 0 ? Math.floor((gridW - GAP * 6) / 7) : 0;
   const move = (d: number): void => {
-    let m = view.m + d;
-    let y = view.y;
-    if (m < 1) { m = 12; y--; }
-    if (m > 12) { m = 1; y++; }
-    setView({ y, m });
+    setView((v) => {
+      let m = v.m + d;
+      let y = v.y;
+      if (m < 1) { m = 12; y--; }
+      if (m > 12) { m = 1; y++; }
+      return { y, m };
+    });
   };
+
+  // 좌우로 밀면 달이 바뀝니다. (왼쪽으로 밀면 다음 달) 세로 스크롤과 날짜 누르기는 그대로 둡니다.
+  const moveRef = useRef(move);
+  moveRef.current = move;
+  const swipe = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onPanResponderRelease: (_e, g) => {
+      if (g.dx <= -50) moveRef.current(1);
+      else if (g.dx >= 50) moveRef.current(-1);
+    },
+  }), []);
+  const webTouch = (Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) as unknown as ViewStyle;
 
   const first = firstWd(view.y, view.m);
   const n = daysInMonth(view.y, view.m);
@@ -118,7 +132,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
         <Btn small ghost label="오늘" onPress={() => { const p = parse(today); setView({ y: p[0], m: p[1] }); }} />
         <Btn small ghost label="›" onPress={() => move(1)} style={{ minWidth: 40 }} />
       </View>
-      <View onLayout={(ev: LayoutChangeEvent) => setGridW(ev.nativeEvent.layout.width)}>
+      <View onLayout={(ev: LayoutChangeEvent) => setGridW(ev.nativeEvent.layout.width)} style={webTouch} {...swipe.panHandlers}>
         <View style={{ flexDirection: 'row', gap: GAP, marginBottom: 4 }}>
           {WD.map((w, i) => (
             <Text key={w} style={{ width: cellW, textAlign: 'center', fontSize: 12, color: i === 0 ? t.sun : i === 6 ? t.sat : t.ink2 }}>{w}</Text>
@@ -132,6 +146,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
           return weeks.map((w, wi) => <View key={'w' + wi} style={{ flexDirection: 'row', columnGap: GAP }}>{w}</View>);
         })()}
       </View>
+      <Text style={{ color: t.ink2, fontSize: 11.5, marginTop: 2 }}>달력을 좌우로 밀면 달이 바뀝니다.</Text>
       {meetList.length ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 }}>
           {meetList.map((h, i) => (

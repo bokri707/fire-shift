@@ -109,6 +109,10 @@ export default function CalendarScreen(): React.ReactElement {
         </Card>
       ) : null}
 
+      {state.teamOn !== true && !state.cloud ? (
+        <Hint>동료와 근무를 공유하거나 모임 투표를 하려면 설정 탭의 "기능 켜기"에서 팀·모임을 켜세요.</Hint>
+      ) : null}
+
       <Text style={{ color: t.ink2, fontSize: 12, lineHeight: 18 }}>
         기록은 이 폰 안에만 저장됩니다. 기관 근무 규정과 다를 수 있으니 실제 근무표와 함께 확인하세요.
       </Text>

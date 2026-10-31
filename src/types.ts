@@ -69,6 +69,9 @@ export interface AppState {
   /** 이 폰에서 올린 투표 id (확정은 올린 사람만) */
   myPolls?: string[];
   cloud: CloudInfo | null;
+  /** 설정에서 켠 기능 (소모임에 들어가 있으면 팀·모임은 저절로 보입니다) */
+  teamOn?: boolean;
+  pairOn?: boolean;
   /** 지금 보고 있지 않은 다른 소모임들 (cloud/members/polls는 지금 보는 소모임) */
   others?: Group[];
 }

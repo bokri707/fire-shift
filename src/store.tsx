@@ -78,6 +78,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }): Reac
             if (p && p.anchor && p.ex && p.team) {
               s = { ...defaults(todayISO()), ...p };
               if (!p.base3) s.base3 = fromIdx(idx(p.anchor) - (p.team - 1));
+              // 예전 버전에서 이미 소모임에 들어가 있던 사람은 지금 보던 탭을 그대로 봅니다.
+              if (p.teamOn === undefined && (p.cloud || (p.others && p.others.length))) s.teamOn = true;
+              if (p.pairOn === undefined && p.cloud) s.pairOn = true;
             }
           } catch (e) { /* 저장값이 깨졌으면 기본값으로 시작합니다 */ }
         }

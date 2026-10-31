@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, ScrollView, Share, TextInput } from 'react-native';
+import { Platform, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
 import { applyBackup, makeBackup, readBackup } from '../lib/backup';
 import { useTheme } from '../theme';
 import { notifySupported } from '../lib/notify';
@@ -63,6 +63,29 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <SetupCard onDone={onDone} />
+
+      <Card style={{ gap: 12 }}>
+        <H2>기능 켜기</H2>
+        <Hint>쓰지 않는 기능은 숨겨 두었습니다. 필요한 것만 켜세요. 언제든 끌 수 있고, 꺼도 기록은 지워지지 않습니다.</Hint>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.ink, fontSize: 15, fontWeight: '600' }}>팀·모임</Text>
+            <Text style={{ color: t.ink2, fontSize: 12 }}>{state.cloud ? '소모임에 들어가 있어서 켜져 있습니다.' : '동료와 근무 공유, 일정, 모임 투표'}</Text>
+          </View>
+          <Switch
+            value={state.teamOn === true || !!state.cloud}
+            disabled={!!state.cloud}
+            onValueChange={(v: boolean) => update((s) => ({ ...s, teamOn: v }))}
+          />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.ink, fontSize: 15, fontWeight: '600' }}>부부·육아</Text>
+            <Text style={{ color: t.ink2, fontSize: 12 }}>배우자와 근무를 함께 보고 육아시간 확인</Text>
+          </View>
+          <Switch value={state.pairOn === true} onValueChange={(v: boolean) => update((s) => ({ ...s, pairOn: v }))} />
+        </View>
+      </Card>
 
       {Platform.OS !== 'web' && notifySupported() ? (
         <Card style={{ gap: 10 }}>

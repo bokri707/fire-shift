@@ -26,6 +26,11 @@ const enc = encodeURIComponent;
 
 const rpc = (fn: string, args: Record<string, unknown>): Promise<unknown> => req('POST', 'rpc/' + fn, args);
 
+/** 사용 횟수 합계만 올립니다. 누가 눌렀는지는 보내지 않습니다. */
+export async function bumpUsage(kind: string): Promise<void> {
+  await rpc('bump_usage', { p_kind: kind });
+}
+
 export async function getTeam(code: string): Promise<{ code: string; name: string; base: string } | null> {
   const r = (await rpc('get_team', { p_code: code })) as { code: string; name: string; base: string } | null;
   return r || null;
