@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { PanResponder, Platform, Pressable, Text, TextInput, View, ViewStyle } from 'react-native';
 import { WD, daysInMonth, firstWd, fromIdx, idx, iso, parse } from './lib/date';
 import { deletePoll, insertPoll, updatePoll } from './cloud';
 import { EV_COLOR, eventTitle, eventsByDate, parseEvent } from './lib/events';
@@ -453,7 +453,7 @@ function MonthNav({ view, move }: { view: { y: number; m: number }; move: (d: nu
   );
 }
 
-function useMonth(startOffset: number): { view: { y: number; m: number }; move: (d: number) => void } {
+function useMonth(startOffset: number): { view: { y: number; m: number }; move: (d: number) => void; swipe: object } {
   const { today } = useStore();
   const p0 = parse(today);
   const [view, setView] = useState(() => {
@@ -462,18 +462,31 @@ function useMonth(startOffset: number): { view: { y: number; m: number }; move: 
     return { y, m };
   });
   const move = (d: number): void => {
-    let m = view.m + d; let y = view.y;
-    if (m < 1) { m = 12; y--; }
-    if (m > 12) { m = 1; y++; }
-    setView({ y, m });
+    setView((v) => {
+      let m = v.m + d; let y = v.y;
+      if (m < 1) { m = 12; y--; }
+      if (m > 12) { m = 1; y++; }
+      return { y, m };
+    });
   };
-  return { view, move };
+  // 좌우로 밀면 달이 바뀝니다. (왼쪽으로 밀면 다음 달)
+  const moveRef = useRef(move);
+  moveRef.current = move;
+  const pan = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onPanResponderRelease: (_e, g) => {
+      if (g.dx <= -50) moveRef.current(1);
+      else if (g.dx >= 50) moveRef.current(-1);
+    },
+  }), []);
+  const webTouch = (Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) as unknown as ViewStyle;
+  return { view, move, swipe: { ...pan.panHandlers, style: webTouch } };
 }
 
 /** 부부 탭: 나와 배우자의 근무·육아시간을 한 달력에 */
 export function PairCard(): React.ReactElement | null {
   const { state, today } = useStore();
-  const { view, move } = useMonth(0);
+  const { view, move, swipe } = useMonth(0);
   if (!state.cloud) return (
     <Card style={{ gap: 10 }}>
       <H2>부부·육아시간 함께 보기</H2>
@@ -491,7 +504,7 @@ export function PairCard(): React.ReactElement | null {
       ) : (
         <>
           <MonthNav view={view} move={move} />
-          <PairView me={me} others={others} today={today} y={view.y} m={view.m} />
+          <View {...swipe}><PairView me={me} others={others} today={today} y={view.y} m={view.m} /></View>
         </>
       )}
     </Card>
@@ -501,7 +514,7 @@ export function PairCard(): React.ReactElement | null {
 /** 팀·모임 탭: 다음 달 우리 팀 연가계획표 */
 export function TeamLeaveCard(): React.ReactElement | null {
   const { state, today } = useStore();
-  const { view, move } = useMonth(1);
+  const { view, move, swipe } = useMonth(1);
   if (!state.cloud) return null;
   const ms = roster(state);
   const others = ms.filter((x) => !x.isMe);
@@ -513,7 +526,7 @@ export function TeamLeaveCard(): React.ReactElement | null {
       ) : (
         <>
           <MonthNav view={view} move={move} />
-          <TeamView all={ms} today={today} y={view.y} m={view.m} code={state.cloud.code} myId={state.cloud.myId} polls={state.polls} />
+          <View {...swipe}><TeamView all={ms} today={today} y={view.y} m={view.m} code={state.cloud.code} myId={state.cloud.myId} polls={state.polls} /></View>
         </>
       )}
     </Card>
