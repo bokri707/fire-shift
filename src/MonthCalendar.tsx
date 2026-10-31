@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, PanResponder, Platform, Pressable, Text, View, ViewStyle } from 'react-native';
 import { WD, daysInMonth, firstWd, iso, parse } from './lib/date';
 import { holName } from './lib/holidays';
-import { eventsByDate } from './lib/events';
+import { GROUP_COLORS, eventsByDate } from './lib/events';
 import { Poll } from './types';
 import { LBL, allMeets, eff, hasManyGroups } from './lib/shift';
 import { useStore } from './store';
@@ -10,8 +10,7 @@ import { kindColors, useTheme } from './theme';
 import { Btn, Card } from './ui';
 
 const GAP = 4;
-/** 소모임이 둘 이상일 때 소모임별 점 색. 근무 색(붉은·초록·남색)·모임(분홍)과 겹치지 않게 골랐습니다. */
-const GROUP_COLORS = ['#0E7C86', '#B45309', '#6B7F1A', '#546E7A', '#9C4F96'];
+
 
 export interface Deco {
   /** 선택된 날: 칸 전체를 이 색으로 채우고 글자를 흰색으로 */

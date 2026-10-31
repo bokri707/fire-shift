@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import {
   KeyboardAvoidingView, LayoutChangeEvent, Modal, Platform, Pressable, ScrollView, Text, TextInput, View,
 } from 'react-native';
-import { WD, fmt, idx, parse, wdOf } from '../lib/date';
+import { WD, fmt, fromIdx, idx, parse, wdOf } from '../lib/date';
 import { downloadIcs, dutyIcs } from '../lib/ics';
 import { holName } from '../lib/holidays';
+import { groupEvents } from '../lib/events';
 import { LBL, OFF_LABELS, WORK_LABELS, allMeets, dutyTeam, eff, hasManyGroups, isThree, ledger, nextDuty, posOf } from '../lib/shift';
 import MonthCalendar from '../MonthCalendar';
 import SetupCard from '../SetupCard';
@@ -29,6 +30,9 @@ export default function CalendarScreen(): React.ReactElement {
   const meets = allMeets(state).filter((p) => p.final >= today).sort((a, b) => (a.final < b.final ? -1 : 1));
   const many = hasManyGroups(state);
   const soon = meets.filter((m) => idx(m.final) - idx(today) <= 1);
+  const evAll = groupEvents(state);
+  const tmr = fromIdx(idx(today) + 1);
+  const soonEv = ([['오늘', today], ['내일', tmr]] as const).flatMap(([lb, d]) => (evAll[d] || []).map((e) => ({ lb, ...e })));
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
@@ -39,6 +43,18 @@ export default function CalendarScreen(): React.ReactElement {
             <Text key={m.id} style={{ color: t.meet, fontSize: 16, fontWeight: '700' }}>
               {idx(m.final) === idx(today) ? '오늘' : '내일'} 모임 · {many ? m.group + ' · ' : ''}{m.title}
             </Text>
+          ))}
+        </Card>
+      ) : null}
+      {soonEv.length ? (
+        <Card style={{ gap: 6 }}>
+          {soonEv.map((e, i) => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: e.color }} />
+              <Text style={{ flex: 1, color: t.ink, fontSize: 15 }}>
+                <Text style={{ fontWeight: '700', color: e.color }}>{e.lb} 일정 </Text>{e.group ? e.group + ' · ' : ''}{e.name}
+              </Text>
+            </View>
           ))}
         </Card>
       ) : null}

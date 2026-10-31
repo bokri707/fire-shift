@@ -1,4 +1,4 @@
-import { Poll } from '../types';
+import { AppState, Poll } from '../types';
 
 /** 팀 일정 종류. 서버 구조를 바꾸지 않으려고, 투표(모임) 항목의 제목 앞에 [직장교육] 같은 말머리를 붙여 저장합니다. */
 export type EvKind = 'plain' | 'edu' | 'dinner' | 'etc' | 'meet';
@@ -54,6 +54,30 @@ export function eventsByDate(polls: Poll[]): Record<string, EvItem[]> {
     } else {
       put(p.final, { id: p.id, kind: 'meet', name: p.title, short: '모', color: EV_COLOR.meet, label: '모임' });
     }
+  });
+  return out;
+}
+
+/** 소모임이 둘 이상일 때 소모임별 점 색. 근무 색(붉은·초록·남색)·모임(분홍)과 겹치지 않게 골랐습니다. */
+export const GROUP_COLORS = ['#0E7C86', '#B45309', '#6B7F1A', '#546E7A', '#9C4F96'];
+
+export interface GroupEv { name: string; color: string; group: string; kind: EvKind }
+
+/** 내가 들어간 모든 소모임의 팀 일정(모임 제외)을 날짜별로 모읍니다. 소모임이 둘 이상이면 소모임별 색과 이름을 붙입니다. */
+export function groupEvents(st: AppState): Record<string, GroupEv[]> {
+  const grp: { code: string; name: string; polls: Poll[] }[] = [];
+  if (st.cloud) grp.push({ code: st.cloud.code, name: st.cloud.name, polls: st.polls });
+  (st.others || []).forEach((g) => grp.push({ code: g.code, name: g.name, polls: g.polls }));
+  const many = grp.length > 1;
+  const codes = grp.map((g) => g.code).sort();
+  const out: Record<string, GroupEv[]> = {};
+  grp.forEach((g) => {
+    const gc = GROUP_COLORS[codes.indexOf(g.code) % GROUP_COLORS.length];
+    const by = eventsByDate(g.polls);
+    Object.keys(by).forEach((d) => by[d].forEach((x) => {
+      if (x.kind === 'meet') return;
+      (out[d] = out[d] || []).push({ name: x.name, color: many ? gc : x.color, group: many ? g.name : '', kind: x.kind });
+    }));
   });
   return out;
 }
