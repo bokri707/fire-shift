@@ -162,7 +162,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
             </View>
           ) : null}
           <SegRow<DraftType>
-            options={[{ v: 'none', label: '기본' }, { v: 'leave', label: '연가' }, { v: 'edu', label: '교육' }, { v: 'dispatch', label: '파견' }, { v: 'etc', label: '기타' }]}
+            options={[{ v: 'none', label: '기본' }, { v: 'leave', label: '연가' }, { v: 'edu', label: '교육' }, { v: 'dispatch', label: '출장' }, { v: 'etc', label: '기타' }]}
             value={type}
             onChange={(v) => { setType(v); setErr(''); }}
           />
