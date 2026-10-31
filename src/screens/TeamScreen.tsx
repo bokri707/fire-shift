@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { PanResponder, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View, ViewStyle } from 'react-native';
 import { WD, daysInMonth, firstChar, fmt, fromIdx, idx, iso, parse, wdOf } from '../lib/date';
 import { LBL, Person, decPattern, isThree, mEff, mFree, manualFromEx, meetDays, roster, teamBase } from '../lib/shift';
 import { downloadIcs, meetIcs } from '../lib/ics';
@@ -273,7 +273,7 @@ function CloudCard(): React.ReactElement | null {
   );
 }
 
-/* ---------- 우리 팀: 7일 보기(오늘 앞뒤 3일) / 30일 보기(보름씩 한 줄로) ---------- */
+/* ---------- 우리 팀: 7일 보기(오늘부터 7일) / 30일 보기(보름씩 한 줄로) ---------- */
 const PHI = 1.618; // 황금비
 const BIG_H = 55; // 피보나치 수 55 : 34 (≈ 1.618)
 const SMALL_H = 34;
@@ -290,7 +290,7 @@ function RosterMatrix({ ms, today }: { ms: Person[]; today: string }): React.Rea
 
   const dates: string[] = [];
   if (mode === 'week') {
-    for (let i = -3; i <= 3; i++) dates.push(fromIdx(idx(today) + shift + i));
+    for (let i = 0; i <= 6; i++) dates.push(fromIdx(idx(today) + shift + i));
   } else {
     const n = daysInMonth(mv.y, mv.m);
     const from = mv.h === 0 ? 1 : 16;
@@ -305,6 +305,17 @@ function RosterMatrix({ ms, today }: { ms: Person[]; today: string }): React.Rea
     else if (h === 1) h = 0; else { h = 1; m--; if (m < 1) { m = 12; y--; } }
     setMv({ y, m, h });
   };
+  // 좌우로 밀면 앞뒤로 넘어갑니다. (왼쪽으로 밀면 다음)
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  const swipe = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onPanResponderRelease: (_e, g) => {
+      if (g.dx <= -50) stepRef.current(1);
+      else if (g.dx >= 50) stepRef.current(-1);
+    },
+  }), []);
+  const webTouch = (Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) as unknown as ViewStyle;
   const goToday = (): void => { setShift(0); setMv({ y: p0[0], m: p0[1], h: nowHalf }); };
   const switchMode = (v: 'week' | 'month'): void => { goToday(); setMode(v); };
 
@@ -360,6 +371,7 @@ function RosterMatrix({ ms, today }: { ms: Person[]; today: string }): React.Rea
         <Text style={{ color: t.ink, fontSize: 16, fontWeight: '600' }}>{f[0]}년 {f[1]}월 {f[2]}일 ~ {f[1] === l[1] ? '' : l[1] + '월 '}{l[2]}일</Text>
         {!atToday ? <Btn small ghost label="오늘" onPress={goToday} /> : null}
       </View>
+      <View style={[{ gap: 6 }, webTouch]} {...swipe.panHandlers}>
       {ms.map((m) => {
         const e = mEff(m, today);
         return (
@@ -390,6 +402,7 @@ function RosterMatrix({ ms, today }: { ms: Person[]; today: string }): React.Rea
           </View>
         );
       })}
+      </View>
     </View>
   );
 }
@@ -435,7 +448,7 @@ function RosterCard(): React.ReactElement {
   return (
     <Card style={{ gap: 10 }}>
       <H2>우리 팀</H2>
-      <Hint>{online ? '소모임에 들어온 사람 모두의 한 달 근무입니다. 7일 보기는 오늘 앞뒤 3일, 30일 보기는 보름(1~15일, 16일~말일)씩 한 줄로 보여줍니다. 아래 ‹ › 로 앞뒤로 넘기세요. 각자 자기 폰에서 입력한 연가·교육이 반영됩니다.' : '같은 근무조 동료를 이름과 팀 번호로 추가하면 그 사람의 당직·비번이 자동으로 계산됩니다. 막대의 칸을 누르면 그 사람의 연가, 교육을 표시할 수 있습니다. 오늘부터 7일입니다.'}</Hint>
+      <Hint>{online ? '소모임에 들어온 사람 모두의 한 달 근무입니다. 7일 보기는 오늘부터 7일, 30일 보기는 보름(1~15일, 16일~말일)씩 한 줄로 보여줍니다. 아래 ‹ › 를 누르거나 근무표를 좌우로 밀어 넘기세요. 각자 자기 폰에서 입력한 연가·교육이 반영됩니다.' : '같은 근무조 동료를 이름과 팀 번호로 추가하면 그 사람의 당직·비번이 자동으로 계산됩니다. 막대의 칸을 누르면 그 사람의 연가, 교육을 표시할 수 있습니다. 오늘부터 7일입니다.'}</Hint>
       <Text style={{ color: t.ink, fontSize: 13 }}>오늘 근무: <Text style={{ fontWeight: '700' }}>{onDuty.length ? onDuty.join(', ') : '없음'}</Text></Text>
       {online ? <RosterMatrix ms={ms} today={today} /> : ms.map((m) => <MemberRow key={m.id} p={m} today={today} onCycle={cycle} onRemove={remove} armed={delArm === m.id} readOnly={online} />)}
       {online ? null : <View style={{ gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.line }}>
