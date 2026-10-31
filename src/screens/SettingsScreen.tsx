@@ -8,6 +8,8 @@ import { groupKind, useStore } from '../store';
 import SetupCard from '../SetupCard';
 import { Btn, Card, Chip, H2, Hint } from '../ui';
 
+const hlabel = (h: number): string => (h < 12 ? '오전 ' + (h === 0 ? 12 : h) : '오후 ' + (h === 12 ? 12 : h - 12)) + '시';
+
 export default function SettingsScreen({ onDone }: { onDone?: () => void }): React.ReactElement {
   const t = useTheme();
   const { state, update, resetAll } = useStore();
@@ -104,7 +106,20 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
               {Array.from({ length: 24 }, (_, h) => h).map((h) => <Chip key={h} label={'전날 ' + (h < 12 ? '오전 ' + (h === 0 ? 12 : h) : '오후 ' + (h === 12 ? 12 : h - 12)) + '시'} on={np.hour === h} onPress={() => setNotifyPref({ ...np, hour: h })} />)}
             </ScrollView>
           ) : null}
-          <Btn ghost={!np.meet} label={np.meet ? '모임 알림 켜짐 (누르면 끔)' : '모임 알림 켜기 (전날 9시, 당일 8시)'} onPress={() => setNotifyPref({ ...np, meet: !np.meet })} />
+          <Btn ghost={!np.meet} label={np.meet ? '모임 알림 켜짐 (누르면 끔)' : '모임 알림 켜기'} onPress={() => setNotifyPref({ ...np, meet: !np.meet })} />
+          {np.meet ? (
+            <View style={{ gap: 8 }}>
+              <Hint>모임 전날 {hlabel(np.meetEve)}, 모임 당일 {hlabel(np.meetDay)}에 알려 드립니다. 언제든 바꿀 수 있고, 바꾸면 알림이 바로 다시 예약됩니다.</Hint>
+              <Text style={{ color: t.ink2, fontSize: 12 }}>모임 전날 알림 시각</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                {Array.from({ length: 24 }, (_, h) => h).map((h) => <Chip key={h} label={hlabel(h)} on={np.meetEve === h} onPress={() => setNotifyPref({ ...np, meetEve: h })} />)}
+              </ScrollView>
+              <Text style={{ color: t.ink2, fontSize: 12 }}>모임 당일 알림 시각</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                {Array.from({ length: 24 }, (_, h) => h).map((h) => <Chip key={h} label={hlabel(h)} on={np.meetDay === h} onPress={() => setNotifyPref({ ...np, meetDay: h })} />)}
+              </ScrollView>
+            </View>
+          ) : null}
         </Card>
       ) : null}
 
