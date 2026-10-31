@@ -368,7 +368,7 @@ function RosterMatrix({ ms, today }: { ms: Person[]; today: string }): React.Rea
   const dateNum = (s: string): React.ReactElement => {
     const w = wdOf(s);
     const isT = s === today;
-    return <Text style={{ color: isT ? t.duty : w === 0 ? t.sun : w === 6 ? t.sat : t.ink2, fontSize: mode === 'week' ? 10.5 : 9.5, fontWeight: isT ? '800' : '400' }}>{parse(s)[2]}</Text>;
+    return <Text style={{ color: isT ? t.duty : w === 0 ? t.sun : w === 6 ? t.sun : t.ink2, fontSize: mode === 'week' ? 10.5 : 9.5, fontWeight: isT ? '800' : '400' }}>{parse(s)[2]}</Text>;
   };
 
   const gap = mode === 'week' ? 4 : 2;

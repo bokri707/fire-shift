@@ -114,7 +114,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
     const dotsR = [careR ? CARE_MINE : '', spR ? CARE_SPOUSE : ''].filter(Boolean);
     if (dotsL.length || dotsR.length) careAny = true;
     const sol = deco && deco.solid ? deco.solid : '';
-    const numColor = isToday ? t.surface : sol ? '#FFFFFF' : hn || wk === 0 ? t.sun : wk === 6 ? t.sat : t.ink;
+    const numColor = isToday ? t.surface : sol ? '#FFFFFF' : hn || wk === 0 ? t.sun : wk === 6 ? t.sun : t.ink;
     const borderColor = isToday ? t.ink : sol ? sol : deco && deco.border ? deco.border : mt ? t.meet : hn ? t.hol : t.line;
     const borderWidth = isToday ? 2.5 : deco && deco.border ? 3 : mt ? 3 : hn ? 2 : 1;
     cells.push(
@@ -174,7 +174,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
       <View onLayout={(ev: LayoutChangeEvent) => setGridW(ev.nativeEvent.layout.width)} style={webTouch} {...swipe.panHandlers}>
         <View style={{ flexDirection: 'row', gap: GAP, marginBottom: 4 }}>
           {WD.map((w, i) => (
-            <Text key={w} style={{ width: cellW, textAlign: 'center', fontSize: 12, color: i === 0 ? t.sun : i === 6 ? t.sat : t.ink2 }}>{w}</Text>
+            <Text key={w} style={{ width: cellW, textAlign: 'center', fontSize: 12, color: i === 0 ? t.sun : i === 6 ? t.sun : t.ink2 }}>{w}</Text>
           ))}
         </View>
         {(() => {

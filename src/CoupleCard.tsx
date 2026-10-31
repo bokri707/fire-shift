@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, Pressable, Text, TextInput, View, ViewStyle } from 'react-native';
+import { holName } from './lib/holidays';
 import { WD, daysInMonth, firstWd, fromIdx, idx, iso, parse } from './lib/date';
 import { deletePoll, insertPoll, updatePoll } from './cloud';
 import { EV_COLOR, eventTitle, eventsByDate, parseEvent } from './lib/events';
@@ -64,7 +65,7 @@ function Weeks({ cells }: { cells: React.ReactElement[] }): React.ReactElement {
   return (
     <>
       <View style={{ flexDirection: 'row', gap: 3 }}>
-        {WD.map((w, i) => <Text key={w} style={{ flex: 1, textAlign: 'center', fontSize: 11, color: i === 0 ? t.sun : i === 6 ? t.sat : t.ink2 }}>{w}</Text>)}
+        {WD.map((w, i) => <Text key={w} style={{ flex: 1, textAlign: 'center', fontSize: 11, color: i === 0 ? t.sun : i === 6 ? t.sun : t.ink2 }}>{w}</Text>)}
       </View>
       {weeks.map((w, wi) => <View key={'w' + wi} style={{ flexDirection: 'row', gap: 3 }}>{w}</View>)}
     </>
@@ -230,24 +231,25 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all:
     const cr = careOf(s);
     const isToday = s === today;
     const wd = (first + d - 1) % 7;
-    const isOver = L > limit;
-    const full = !isOver && L > 0 && L === limit;
+    const isOver = plan && L > limit;
+    const full = plan && !isOver && L > 0 && L === limit;
+    const hn = holName(s);
     if (isOver) over++;
-    const pa = partner ? mEff(meP, s) : null;
     const pb = partner ? mEff(partner, s) : null;
     const noCare = !!(partner && !mFree(meP, s, false) && !mFree(partner, s, false));
     const bg = partner ? t.surface : !plan ? t.surface : isOver ? t.duty : full ? '#FFE9A8' : L > 0 ? '#DCEFE6' : N > 0 ? '#EEF1F4' : t.surface;
     const fg = isOver ? '#fff' : full ? '#7A5300' : t.leave;
     cells.push(
       <Pressable key={s} onPress={() => setSel(s)} style={{ flex: 1, minHeight: 80, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s || noCare ? 2 : 1, borderColor: sel === s ? t.accent : noCare ? t.bad : isToday ? t.ink : t.line, backgroundColor: bg }}>
-        <Text style={{ fontSize: 12, fontWeight: '700', color: isOver ? '#fff' : wd === 0 ? t.sun : wd === 6 ? t.sat : t.ink, paddingLeft: 2 }}>{d}</Text>
-        {partner ? (
+        <Text style={{ fontSize: 12, fontWeight: '700', color: isOver ? '#fff' : hn || wd === 0 || wd === 6 ? t.sun : t.ink, paddingLeft: 2 }}>{d}</Text>
+        {hn ? <Text numberOfLines={1} style={{ fontSize: 9, fontWeight: '700', color: isOver ? '#fff' : t.sun, paddingLeft: 2 }}>{hn}</Text> : null}
+        {partner || !plan ? (
           <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>
-            {pa && visible(pa) ? <Mark e={pa} color={t.duty} /> : null}
+            {visible(mEff(meP, s)) ? <Mark e={mEff(meP, s)} color={t.duty} /> : null}
             {pb && visible(pb) ? <Mark e={pb} color={PARTNER} /> : null}
           </View>
         ) : null}
-        <View style={{ flex: partner ? 0 : 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: partner || !plan ? 0 : 1, alignItems: 'center', justifyContent: 'center' }}>
           {plan && L > 0 ? <Text style={{ fontSize: 14, fontWeight: '800', color: fg }}>{L}/{limit}</Text> : null}
           {plan && isOver ? <Text style={{ fontSize: 10, fontWeight: '800', color: '#fff' }}>보강</Text> : null}
         </View>
