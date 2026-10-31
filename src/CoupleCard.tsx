@@ -288,7 +288,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all:
           <Dot color={PARTNER} label={partner.name} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <View style={{ width: 14, height: 14, borderRadius: 4, borderWidth: 2, borderColor: t.bad }} />
-            <Text style={{ color: t.ink, fontSize: 13 }}>아이 볼 사람 없음</Text>
+            <Text style={{ color: t.ink, fontSize: 13 }}>근무 겹침</Text>
           </View>
         </View>
       ) : null}
@@ -398,7 +398,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all:
         </View>
       ) : null}
       {plan ? <Text style={{ color: t.ink, fontSize: 13 }}>이 달 한도 초과(보강 필요) <Text style={{ fontWeight: '700', color: t.duty }}>{over}일</Text></Text> : null}
-      {plan ? <Hint>칸의 숫자는 "빠지는 인원 / 한도 인원"입니다. 연가·병가·교육·출장·기타로 근무에서 빠지는 사람을 모두 셉니다. 한도는 총 인원의 3분의 1(소수점은 버림)로 계산합니다. 소모임에 들어와 달력에 기록한 사람만 셀 수 있으니, 팀 총 인원은 실제 인원에 맞춰 + − 로 고쳐 주세요. 팀원끼리 계획을 미리 입력해 서로 보면서 조율하는 용도입니다.</Hint> : <Hint>{partner ? '붉은색은 나, 남색은 ' + partner.name + '입니다. 한 칸에 위(나)·아래(상대)로 나옵니다. 빨간 테두리는 두 사람 모두 당직·교육·출장·기타로 아이를 볼 수 없는 날입니다. 칸의 육은 육아시간이고, 당 앞은 출근 때, 당 뒤는 퇴근 때입니다. 일정은 소모임 모두에게 보입니다. ' : '모임 일정은 같은 소모임에 들어온 사람 모두에게 보입니다. '}모임 날짜를 투표로 정하려면 "모임·투표"를 쓰세요.</Hint>}
+      {plan ? <Hint>칸의 숫자는 "빠지는 인원 / 한도 인원"입니다. 연가·병가·교육·출장·기타로 근무에서 빠지는 사람을 모두 셉니다. 한도는 총 인원의 3분의 1(소수점은 버림)로 계산합니다. 소모임에 들어와 달력에 기록한 사람만 셀 수 있으니, 팀 총 인원은 실제 인원에 맞춰 + − 로 고쳐 주세요. 팀원끼리 계획을 미리 입력해 서로 보면서 조율하는 용도입니다.</Hint> : <Hint>{partner ? '붉은색은 나, 남색은 ' + partner.name + '입니다. 한 칸에 위(나)·아래(상대)로 나옵니다. 빨간 테두리는 두 사람 모두 당직·교육·출장·기타로 근무가 겹치는 날입니다. 칸의 육은 육아시간이고, 당 앞은 출근 때, 당 뒤는 퇴근 때입니다. 일정은 소모임 모두에게 보입니다. ' : '모임 일정은 같은 소모임에 들어온 사람 모두에게 보입니다. '}모임 날짜를 투표로 정하려면 "모임·투표"를 쓰세요.</Hint>}
     </>
   );
 }
