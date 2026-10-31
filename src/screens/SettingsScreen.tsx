@@ -98,9 +98,10 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
           <H2>알림</H2>
           <Hint>근무표나 맞교대를 바꾸면 알림도 저절로 바뀝니다. 근무 알림은 앞으로 14일치입니다. 모임 알림은 앱을 열어 서버에서 확정된 모임을 받은 뒤부터 울립니다.</Hint>
           <Btn ghost={!np.on} label={np.on ? '근무 알림 켜짐 (누르면 끔)' : '근무 알림 켜기 (근무 전날)'} onPress={() => setNotifyPref({ ...np, on: !np.on })} />
+          {np.on ? <Hint>근무 전날 {np.hour < 12 ? '오전 ' + (np.hour === 0 ? 12 : np.hour) : '오후 ' + (np.hour === 12 ? 12 : np.hour - 12)}시에 알려 드립니다. 아래에서 언제든 바꿀 수 있고, 바꾸면 알림이 바로 다시 예약됩니다.</Hint> : null}
           {np.on ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-              {[18, 19, 20, 21, 22].map((h) => <Chip key={h} label={'전날 ' + h + '시'} on={np.hour === h} onPress={() => setNotifyPref({ ...np, hour: h })} />)}
+              {Array.from({ length: 24 }, (_, h) => h).map((h) => <Chip key={h} label={'전날 ' + (h < 12 ? '오전 ' + (h === 0 ? 12 : h) : '오후 ' + (h === 12 ? 12 : h - 12)) + '시'} on={np.hour === h} onPress={() => setNotifyPref({ ...np, hour: h })} />)}
             </ScrollView>
           ) : null}
           <Btn ghost={!np.meet} label={np.meet ? '모임 알림 켜짐 (누르면 끔)' : '모임 알림 켜기 (전날 9시, 당일 8시)'} onPress={() => setNotifyPref({ ...np, meet: !np.meet })} />
