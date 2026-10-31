@@ -163,7 +163,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
           // 서버에 남아 있는 내 연가·교육·맞교대(종류만)를 되살립니다.
           Object.keys(mine.ex).forEach((k) => {
             const ty = mine.ex[k];
-            if (!ex[k] && (ty === 'leave' || ty === 'edu' || ty === 'dispatch' || ty === 'etc' || ty === 'swap' || ty === 'care' || ty === 'careIn' || ty === 'careOut' || ty === 'careBoth')) ex[k] = { type: ty, who: '', memo: '' };
+            if (!ex[k] && (ty === 'leave' || ty === 'edu' || ty === 'dispatch' || ty === 'etc' || ty === 'swap' || ty === 'cover' || ty === 'care' || ty === 'careIn' || ty === 'careOut' || ty === 'careBoth')) ex[k] = { type: ty, who: '', memo: '' };
           });
         }
         const useTeam = mine ? mine.team : team;

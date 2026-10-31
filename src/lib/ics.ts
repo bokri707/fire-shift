@@ -42,7 +42,7 @@ export function dutyIcs(st: AppState, today: string, days: number): string {
     const d = fromIdx(i);
     const e = eff(st, d);
     if (!e.works) continue;
-    const name = '근무 ' + e.label + (e.kind === 'swap' ? ' (맞교대)' : '');
+    const name = '근무 ' + e.label + (e.kind === 'swap' && e.label !== '보강' ? ' (맞교대)' : '');
     lines.push(
       'BEGIN:VEVENT',
       'UID:duty-' + d + '@fire-shift',

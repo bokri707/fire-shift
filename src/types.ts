@@ -1,5 +1,5 @@
 export type Kind = 'duty' | 'off' | 'leave' | 'edu' | 'swap';
-export type ExType = 'leave' | 'edu' | 'swap' | 'dispatch' | 'etc' | 'care' | 'careIn' | 'careOut' | 'careBoth';
+export type ExType = 'leave' | 'edu' | 'swap' | 'cover' | 'dispatch' | 'etc' | 'care' | 'careIn' | 'careOut' | 'careBoth';
 
 /** 하루 근무 표시: l=칸에 쓰는 글자(당·비·주·야·휴 등), w=근무하는 날인지 */
 export interface PDay { l: string; w: boolean }

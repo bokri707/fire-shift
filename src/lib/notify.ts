@@ -70,7 +70,7 @@ export async function reschedule(st: AppState, today: string, opt: { duty: boole
       const d = fromIdx(i);
       const e = eff(st, d);
       if (!e.works) continue;
-      const name = e.label + (e.kind === 'swap' ? ' (맞교대)' : '');
+      const name = e.label + (e.kind === 'swap' && e.label !== '보강' ? ' (맞교대)' : '');
       if (await schedule(N, at(fromIdx(i - 1), opt.hour), '내일 근무', '내일은 ' + name + ' 근무예요.')) n++;
     }
   }

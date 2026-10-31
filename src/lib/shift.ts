@@ -72,6 +72,7 @@ export function eff(st: AppState, s: string): Eff {
     else if (e.type === 'careBoth') { r.sub = '육아시간(출근·퇴근 모두)'; }
     else if (e.type === 'careOut') { r.sub = '육아시간(퇴근 때)'; }
     else if (e.type === 'care') { r.sub = '육아시간'; }
+    else if (e.type === 'cover') { r.kind = 'swap'; r.label = '보강'; r.works = true; r.sub = '근무'; }
     else if (e.type === 'swap') {
       r.kind = 'swap'; r.label = '맞교대';
       if (base === 'duty') { r.works = false; r.sub = '쉼'; } else { r.works = true; r.sub = '근무'; }
@@ -138,7 +139,7 @@ export function roster(st: AppState): Person[] {
   return list;
 }
 
-export interface MEff { pos: number; base: 'duty' | 'off'; kind: Kind; works: boolean; l: string; label: string; post: boolean; why: '' | '연가' | '교육' | '출장' | '기타'; care: '' | 'in' | 'out' | 'both' }
+export interface MEff { pos: number; base: 'duty' | 'off'; kind: Kind; works: boolean; cover: boolean; l: string; label: string; post: boolean; why: '' | '연가' | '교육' | '출장' | '기타'; care: '' | 'in' | 'out' | 'both' }
 
 export function mEff(p: Person, s: string): MEff {
   const bd = baseDay(p.pat, p.anchor, p.manual, s);
@@ -149,8 +150,9 @@ export function mEff(p: Person, s: string): MEff {
   let works = bd.w;
   if (t === 'leave') { kind = 'leave'; works = false; }
   else if (t === 'edu' || t === 'dispatch' || t === 'etc') { kind = 'edu'; works = false; }
+  else if (t === 'cover') { kind = 'swap'; works = true; }
   else if (t === 'swap') { kind = 'swap'; works = !bd.w; }
-  return { pos: bd.pos, base, kind, works, l: bd.l, label: longLabel(bd.l), post: prev.w, why: t === 'leave' ? '연가' : t === 'edu' ? '교육' : t === 'dispatch' ? '출장' : t === 'etc' ? '기타' : '', care: t === 'careBoth' ? 'both' : t === 'careIn' ? 'in' : t === 'careOut' || t === 'care' ? 'out' : '' };
+  return { pos: bd.pos, base, kind, works, cover: t === 'cover', l: bd.l, label: longLabel(bd.l), post: prev.w, why: t === 'leave' ? '연가' : t === 'edu' ? '교육' : t === 'dispatch' ? '출장' : t === 'etc' ? '기타' : '', care: t === 'careBoth' ? 'both' : t === 'careIn' ? 'in' : t === 'careOut' || t === 'care' ? 'out' : '' };
 }
 
 /** 쉬는 날(근무도 교육도 아님)이면 true. 연가·비번은 가능으로 봅니다. */

@@ -46,7 +46,7 @@ function Mark({ e, color }: { e: MEff; color: string }): React.ReactElement {
   const t = useTheme();
   const c = kindColors(t, e.kind);
   const duty = e.kind === 'duty';
-  const txt = e.kind === 'swap' ? (e.works ? '맞' : '') : e.kind === 'leave' ? '연' : e.kind === 'edu' ? e.why.slice(0, 1) : duty ? '당' : '';
+  const txt = e.kind === 'swap' ? (e.works ? (e.cover ? '보' : '맞') : '') : e.kind === 'leave' ? '연' : e.kind === 'edu' ? e.why.slice(0, 1) : duty ? '당' : '';
   return (
     <View style={{ height: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 12, backgroundColor: duty ? color : 'transparent', borderWidth: !duty && txt ? 1.5 : 0, borderColor: !duty && txt ? c.fg : 'transparent' }}>
       {e.care === 'in' || e.care === 'both' ? <CareBadge /> : null}
@@ -100,6 +100,7 @@ function dayText(e: MEff): string {
   const parts: string[] = [];
   if (e.kind === 'leave') parts.push('연가 (원래 ' + e.label + ')');
   else if (e.kind === 'edu') parts.push((e.why || '교육') + ' (원래 ' + e.label + ')');
+  else if (e.cover) parts.push('보강 근무 (원래 ' + e.label + ')');
   else if (e.kind === 'swap') parts.push('맞교대 ' + (e.works ? '근무' : '쉼') + ' (원래 ' + e.label + ')');
   else parts.push(e.label);
   if (e.care === 'in') parts.push('육아시간(출근 때)');
