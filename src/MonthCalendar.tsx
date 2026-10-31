@@ -3,12 +3,15 @@ import { LayoutChangeEvent, PanResponder, Platform, Pressable, Text, View, ViewS
 import { WD, daysInMonth, firstWd, iso, parse } from './lib/date';
 import { holName } from './lib/holidays';
 import { eventsByDate } from './lib/events';
+import { Poll } from './types';
 import { LBL, allMeets, eff, hasManyGroups } from './lib/shift';
 import { useStore } from './store';
 import { kindColors, useTheme } from './theme';
 import { Btn, Card } from './ui';
 
 const GAP = 4;
+/** 소모임이 둘 이상일 때 소모임별 점 색. 근무 색(붉은·초록·남색)·모임(분홍)과 겹치지 않게 골랐습니다. */
+const GROUP_COLORS = ['#0E7C86', '#B45309', '#6B7F1A', '#546E7A', '#9C4F96'];
 
 export interface Deco {
   /** 선택된 날: 칸 전체를 이 색으로 채우고 글자를 흰색으로 */
@@ -68,8 +71,19 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
   const many = hasManyGroups(state);
   allMeets(state).forEach((p) => { if (!meets[p.final]) meets[p.final] = []; meets[p.final].push({ t: p.title, g: many ? p.group : '' }); });
   // 팀 일정(모임과 별개)은 칸 왼쪽 아래에 작은 색 점으로 표시합니다.
-  const evs = eventsByDate(state.polls.concat(...(state.others || []).map((g) => g.polls)));
-  const evNames: { d: number; name: string; color: string }[] = [];
+  const grp: { code: string; name: string; polls: Poll[] }[] = [];
+  if (state.cloud) grp.push({ code: state.cloud.code, name: state.cloud.name, polls: state.polls });
+  (state.others || []).forEach((g) => grp.push({ code: g.code, name: g.name, polls: g.polls }));
+  const codes = grp.map((g) => g.code).sort();
+  const evs: Record<string, { name: string; color: string; group: string; kind: string }[]> = {};
+  grp.forEach((g) => {
+    const gc = GROUP_COLORS[codes.indexOf(g.code) % GROUP_COLORS.length];
+    const by = eventsByDate(g.polls);
+    Object.keys(by).forEach((d) => by[d].forEach((x) => {
+      (evs[d] = evs[d] || []).push({ name: x.name, color: many ? gc : x.color, group: many ? g.name : '', kind: x.kind });
+    }));
+  });
+  const evNames: { d: number; name: string; color: string; group: string }[] = [];
   const meetList: { d: number; name: string }[] = [];
   for (let i = 0; i < first; i++) cells.push(<View key={'b' + i} style={{ width: cellW, height: 4 }} />);
   for (let d = 1; d <= n; d++) {
@@ -83,7 +97,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
     const deco = decorate ? decorate(s) : null;
     const mt = meets[s];
     const ev = evs[s];
-    if (ev) ev.filter((x) => x.kind !== 'meet').forEach((x) => evNames.push({ d, name: x.name, color: x.color }));
+    if (ev) ev.filter((x) => x.kind !== 'meet').forEach((x) => evNames.push({ d, name: x.name, color: x.color, group: x.group }));
     if (mt) mt.forEach((m) => meetList.push({ d, name: m.g ? m.g + ' · ' + m.t : m.t }));
     const chipText = e.label === '당직' ? '당' : e.label === '비번' ? '비' : e.label;
     const sol = deco && deco.solid ? deco.solid : '';
@@ -168,7 +182,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
       {evNames.length ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 }}>
           {evNames.map((h, i) => (
-            <Text key={i} style={{ color: t.ink2, fontSize: 12.5 }}><Text style={{ color: h.color, fontWeight: '700' }}>● {h.d}일 </Text>{h.name}</Text>
+            <Text key={i} style={{ color: t.ink2, fontSize: 12.5 }}><Text style={{ color: h.color, fontWeight: '700' }}>● {h.d}일 </Text>{h.group ? h.group + ' · ' : ''}{h.name}</Text>
           ))}
         </View>
       ) : null}
