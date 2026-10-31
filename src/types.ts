@@ -74,6 +74,8 @@ export interface AppState {
   /** 설정에서 켠 기능 (소모임에 들어가 있으면 팀·모임은 저절로 보입니다) */
   teamOn?: boolean;
   meetOn?: boolean;
+  /** 부부·육아 탭에서 배우자를 찾을 소모임 코드 (없으면 자동으로 고름) */
+  pairCode?: string;
   pairOn?: boolean;
   /** 지금 보고 있지 않은 다른 소모임들 (cloud/members/polls는 지금 보는 소모임) */
   others?: Group[];

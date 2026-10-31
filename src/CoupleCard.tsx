@@ -5,7 +5,7 @@ import { WD, daysInMonth, firstWd, fromIdx, idx, iso, parse } from './lib/date';
 import { deletePoll, insertPoll, updatePoll } from './cloud';
 import { EV_COLOR, eventTitle, eventsByDate, parseEvent } from './lib/events';
 import { MEff, Person, mEff, roster } from './lib/shift';
-import { markWrite, newId, useStore } from './store';
+import { groupKind, markWrite, newId, switchGroup, useStore } from './store';
 import { Poll } from './types';
 import { kindColors, useTheme } from './theme';
 import { Btn, Card, H2, Hint } from './ui';
@@ -487,22 +487,36 @@ function useMonth(startOffset: number): { view: { y: number; m: number }; move: 
 
 /** 부부 탭: 나와 배우자의 근무·육아시간을 한 달력에 */
 export function PairCard(): React.ReactElement | null {
-  const { state, today } = useStore();
+  const t = useTheme();
+  const { state: real, update, today } = useStore();
   const { view, move, swipe } = useMonth(0);
-  if (!state.cloud) return (
+  if (!real.cloud) return (
     <Card style={{ gap: 10 }}>
       <H2>부부·육아시간 함께 보기</H2>
-      <Hint>먼저 "팀·모임" 탭에서 소모임을 만들거나 코드로 들어오세요. 배우자도 같은 소모임에 들어오면 두 사람의 근무와 육아시간을 한 달력에서 볼 수 있습니다.</Hint>
+      <Hint>먼저 팀 또는 모임 탭에서 소모임을 만들거나 코드로 들어오세요. 배우자도 같은 소모임에 들어오면 두 사람의 근무와 육아시간을 한 달력에서 볼 수 있습니다.</Hint>
     </Card>
   );
+  // 어느 탭을 보고 있든, 부부·육아 탭은 배우자가 있는 소모임을 따로 정해서 봅니다.
+  const groups: { code: string; name: string; kind?: 'team' | 'meet'; n: number }[] = [{ code: real.cloud.code, name: real.cloud.name, kind: real.cloud.kind, n: real.members.length }]
+    .concat((real.others || []).map((g) => ({ code: g.code, name: g.name, kind: g.kind, n: g.members.length })));
+  const picked = groups.find((g) => g.code === real.pairCode);
+  const auto = groups.find((g) => groupKind(g) === 'meet' && g.n > 0) || groups[0];
+  const useCode = (picked || auto).code;
+  const state = switchGroup(real, useCode);
   const ms = roster(state);
   const me = ms.find((x) => x.isMe) as Person;
   const others = ms.filter((x) => !x.isMe);
   return (
     <Card style={{ gap: 10 }}>
       <H2>부부·육아시간 함께 보기</H2>
+      {groups.length > 1 ? (
+        <View style={{ gap: 6 }}>
+          <Text style={{ color: t.ink2, fontSize: 12 }}>배우자가 들어 있는 소모임</Text>
+          <Chips items={groups.map((g) => ({ id: g.code, label: g.name }))} value={useCode} onPick={(id) => update((s) => ({ ...s, pairCode: id }))} />
+        </View>
+      ) : null}
       {others.length === 0 ? (
-        <Hint>같은 소모임에 배우자가 들어오면 두 사람의 근무와 육아시간을 한 달력에서 볼 수 있습니다. "팀·모임" 탭의 소모임 코드로 배우자를 초대하세요.</Hint>
+        <Hint>고른 소모임에 배우자가 들어오면 두 사람의 근무와 육아시간을 한 달력에서 볼 수 있습니다. 팀 또는 모임 탭의 소모임 코드로 배우자를 초대하세요.</Hint>
       ) : (
         <>
           <MonthNav view={view} move={move} />
