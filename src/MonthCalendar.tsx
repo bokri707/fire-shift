@@ -134,7 +134,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
         <View style={{ alignSelf: 'flex-start', marginLeft: 1, minWidth: 20, paddingHorizontal: 4, borderRadius: 5, backgroundColor: isToday ? TODAY : 'transparent' }}>
           <Text style={{ color: numColor, fontSize: 12, fontWeight: '700', lineHeight: 18, textAlign: 'center' }}>{d}</Text>
         </View>
-        {hn ? <Text style={{ color: sol ? '#FFFFFF' : t.sun, fontSize: 9, fontWeight: '700', lineHeight: 11, textAlign: 'center' }}>{hn}</Text> : null}
+        {hn ? <Text numberOfLines={1} style={{ color: sol ? '#FFFFFF' : t.sun, fontSize: 9, fontWeight: '700', lineHeight: 11, textAlign: 'center' }}>{hn}</Text> : null}
         <View style={{
           minWidth: 24, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6, alignItems: 'center',
           backgroundColor: e.kind === 'duty' ? t.duty : e.kind === 'off' ? 'transparent' : c.bg,
