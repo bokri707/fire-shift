@@ -11,7 +11,7 @@ import { CareDot, TeamLeaveCard, careColor } from '../CoupleCard';
 import { isEventPoll } from '../lib/events';
 import { GroupKind, groupKind, markWrite, newId, switchGroup, useStore } from '../store';
 import { kindColors, useTheme } from '../theme';
-import { Btn, Card, Chip, H2, Hint, Pill, SegRow } from '../ui';
+import { Btn, Card, Chip, H2, Help, Hint, Pill, SegRow } from '../ui';
 
 type Sub = 'team' | 'leave' | 'meet';
 
@@ -290,7 +290,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: t.ink, fontSize: 14, fontWeight: '600' }}>부부(가족) 소모임으로 표시</Text>
-              <Text style={{ color: t.ink2, fontSize: 12 }}>켜면 같은 소모임의 모든 사람에게 적용됩니다. 달력에 배우자 육아시간이 파란 점으로 보이고, 모임 일정이 두 사람 근무 달력으로 바뀝니다.</Text>
+              <Help><Text style={{ color: t.ink2, fontSize: 12 }}>켜면 같은 소모임의 모든 사람에게 적용됩니다. 달력에 배우자 육아시간이 파란 점으로 보이고, 모임 일정이 두 사람 근무 달력으로 바뀝니다.</Text></Help>
             </View>
             <Switch
               value={c.pair === true}
@@ -306,9 +306,9 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
             <TextInput value={myNick} onChangeText={(v: string) => { setMyNick(v); setNickMsg(''); }} maxLength={12} placeholderTextColor={t.ink2} style={[field, { flex: 1 }]} />
             <Btn small label="변경" disabled={!myNick.trim() || myNick.trim() === curNick} onPress={renameMe} />
           </View>
-          {nickMsg ? <Hint bad={nickMsg.indexOf('변경했') < 0}>{nickMsg}</Hint> : null}
+          {nickMsg ? <Hint keep bad={nickMsg.indexOf('변경했') < 0}>{nickMsg}</Hint> : null}
           {netErr ? <Hint bad>{netErr}</Hint> : null}
-          {note ? <Hint>{note}</Hint> : null}
+          {note ? <Hint keep>{note}</Hint> : null}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Btn small label="코드 공유" onPress={() => { const lk = inviteLink(c.code); shareCode('소방 교대달력 소모임 [' + c.name + '] 초대' + (lk ? '\n링크: ' + lk : '') + '\n초대 코드: ' + c.code); }} />
             <Btn small ghost label={armed ? '한 번 더 눌러 나가기' : '이 소모임에서 나가기'} onPress={leave} />
@@ -325,7 +325,7 @@ const BIG_H = 55; // 피보나치 수 55 : 34 (≈ 1.618)
 const SMALL_H = 34;
 const GAP = 8; // 피보나치 수
 
-function RosterMatrix({ ms, today }: { ms: Person[]; today: string }): React.ReactElement {
+function RosterMatrix({ ms, today, spouseId }: { ms: Person[]; today: string; spouseId?: string }): React.ReactElement {
   const t = useTheme();
   const p0 = parse(today);
   const [mode, setMode] = useState<'week' | 'month'>('week');
@@ -438,8 +438,8 @@ function RosterMatrix({ ms, today }: { ms: Person[]; today: string }): React.Rea
                 <>
                   <View style={{ width: '100%', height: 22, borderRadius: mode === 'week' ? 5 : 4, backgroundColor: x.kind === 'duty' ? t.duty : c.bg, borderWidth: 1, borderColor: c.fg, alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ fontSize: mode === 'week' ? 10 : 9, fontWeight: '700', color: x.kind === 'duty' ? t.onDuty : c.fg }}>{txt}</Text>
-                    {x.care === 'in' || x.care === 'both' ? <View style={{ position: 'absolute', left: -3, top: -4 }}><CareDot color={careColor(ms, m.id)} size={mode === 'week' ? 12 : 8} /></View> : null}
-                    {x.care === 'out' || x.care === 'both' ? <View style={{ position: 'absolute', right: -3, top: -4 }}><CareDot color={careColor(ms, m.id)} size={mode === 'week' ? 12 : 8} /></View> : null}
+                    {x.care === 'in' || x.care === 'both' ? <View style={{ position: 'absolute', left: -3, top: -4 }}><CareDot color={careColor(ms, m.id, spouseId)} size={mode === 'week' ? 12 : 8} /></View> : null}
+                    {x.care === 'out' || x.care === 'both' ? <View style={{ position: 'absolute', right: -3, top: -4 }}><CareDot color={careColor(ms, m.id, spouseId)} size={mode === 'week' ? 12 : 8} /></View> : null}
                   </View>
                   {dateNum(s)}
                 </>
@@ -496,7 +496,7 @@ function RosterCard(): React.ReactElement {
       <H2>우리 팀</H2>
       <Hint>{online ? '소모임에 들어온 사람 모두의 한 달 근무입니다. 7일 보기는 오늘부터 7일, 30일 보기는 보름(1~15일, 16일~말일)씩 한 줄로 보여줍니다. 아래 ‹ › 를 누르거나 근무표를 좌우로 밀어 넘기세요. 각자 자기 폰에서 입력한 연가·교육이 반영됩니다.' : '같은 근무조 동료를 이름과 팀 번호로 추가하면 그 사람의 당직·비번이 자동으로 계산됩니다. 막대의 칸을 누르면 그 사람의 연가, 교육을 표시할 수 있습니다. 오늘부터 7일입니다.'}</Hint>
       <Text style={{ color: t.ink, fontSize: 13 }}>오늘 근무: <Text style={{ fontWeight: '700' }}>{onDuty.length ? onDuty.join(', ') : '없음'}</Text></Text>
-      {online ? <RosterMatrix ms={ms} today={today} /> : ms.map((m) => <MemberRow key={m.id} p={m} today={today} onCycle={cycle} onRemove={remove} armed={delArm === m.id} readOnly={online} />)}
+      {online ? <RosterMatrix ms={ms} today={today} spouseId={state.cloud && state.cloud.pair === true ? (ms.find((x) => !x.isMe) || { id: '' }).id : undefined} /> : ms.map((m) => <MemberRow key={m.id} p={m} today={today} onCycle={cycle} onRemove={remove} armed={delArm === m.id} readOnly={online} />)}
       {online ? null : <View style={{ gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.line }}>
         <Text style={{ color: t.ink2, fontSize: 12 }}>팀원 추가</Text>
         <TextInput
@@ -670,7 +670,7 @@ function MeetCard(): React.ReactElement {
           <MonthCalendar bare decorate={decorate} onPressDate={(d) => { if (valid(d)) toggle(setPick, d); }} />
           <Hint>내일부터의 날짜를 탭하면 초록색 체크 칸으로 바뀝니다. 날짜 아래 글자: "전원"은 모두 쉬는 날, "−김"은 그 사람만 빠지는 날, "−3명"은 3명이 빠지는 날입니다.</Hint>
           <View style={{ gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: t.line }}>
-            <Hint>{picks.length}일 선택{picks.length ? ' · ' + picks.map((d) => { const p = parse(d); return p[1] + '/' + p[2] + '(' + WD[wdOf(d)] + ')'; }).join(', ') : ' · 날짜를 탭해서 후보를 고르세요.'}</Hint>
+            <Hint keep>{picks.length}일 선택{picks.length ? ' · ' + picks.map((d) => { const p = parse(d); return p[1] + '/' + p[2] + '(' + WD[wdOf(d)] + ')'; }).join(', ') : ' · 날짜를 탭해서 후보를 고르세요.'}</Hint>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Btn small ghost label="전원 가능한 날 모두 선택" disabled={!r.full.length} onPress={() => setPick((prev) => { const n = { ...prev }; r.full.forEach((c) => { n[c.iso] = true; }); return n; })} />
               {openPoll ? null : <Btn small label="투표 올리기" disabled={!picks.length} onPress={make} />}
@@ -700,10 +700,10 @@ function PollsCard(): React.ReactElement {
   return (
     <Card style={{ gap: 12 }}>
       <H2>모임 투표</H2>
-      {state.cloud ? <Hint bad={!!netErr}>{netErr || (syncedAt ? '서버와 연결됨 · 마지막 갱신 ' + new Date(syncedAt).toTimeString().slice(0, 8) : '서버에 연결하는 중...')}</Hint> : null}
+      {state.cloud ? <Hint keep bad={!!netErr}>{netErr || (syncedAt ? '서버와 연결됨 · 마지막 갱신 ' + new Date(syncedAt).toTimeString().slice(0, 8) : '서버에 연결하는 중...')}</Hint> : null}
       {live.length === 0 ? <Hint>위에서 후보 날짜를 탭해 투표를 올리면 여기에 나타납니다. 이 테스트판에서는 투표하는 사람을 직접 골라 대신 눌러 볼 수 있습니다.</Hint> : null}
       {live.map((p) => <PollView key={p.id} pid={p.id} />)}
-      <Text style={{ color: t.ink2, fontSize: 12 }}>지난 날짜의 투표는 자동으로 숨겨집니다.</Text>
+      <Help><Text style={{ color: t.ink2, fontSize: 12 }}>지난 날짜의 투표는 자동으로 숨겨집니다.</Text></Help>
     </Card>
   );
 }
@@ -778,7 +778,7 @@ function PollView({ pid }: { pid: string }): React.ReactElement | null {
           <Pill kind="leave" text="확정" />
           <Text style={{ color: t.ink, fontWeight: '700' }}>{fmt(poll.final)}</Text>
         </View>
-        <Hint>가능 표시 {fv.length}명{fv.length ? ' (' + fv.map(nm).join(', ') + ')' : ''}{rest.length ? ' · 표시 안 함 ' + rest.map(nm).join(', ') : ''}</Hint>
+        <Hint keep>가능 표시 {fv.length}명{fv.length ? ' (' + fv.map(nm).join(', ') + ')' : ''}{rest.length ? ' · 표시 안 함 ' + rest.map(nm).join(', ') : ''}</Hint>
         {hard.length ? <Hint bad>근무 일정상 어려운 사람: {hard.map(nm).join(', ')}</Hint> : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {Platform.OS === 'web' ? <Btn small label="내 캘린더에 알림과 함께 추가" onPress={() => { downloadIcs('모임-' + poll.final + '.ics', meetIcs(poll.id, poll.title, state.cloud ? state.cloud.name : '', poll.final)); }} /> : null}
@@ -836,7 +836,7 @@ function PollView({ pid }: { pid: string }): React.ReactElement | null {
         );
       })}
       {voted < total ? (
-        <Hint>전원이 투표하면 모임을 확정할 수 있습니다. (현재 {voted}/{total}명 응답)</Hint>
+        <Hint keep>전원이 투표하면 모임을 확정할 수 있습니다. (현재 {voted}/{total}명 응답)</Hint>
       ) : canFinalize ? (
         <View style={{ gap: 6 }}>
           <Text style={{ color: t.ink, fontSize: 13.5, fontWeight: '700' }}>전원 투표 완료 · 확정할 날짜를 고르세요</Text>

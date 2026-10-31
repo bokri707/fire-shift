@@ -11,7 +11,7 @@ import MonthCalendar from '../MonthCalendar';
 import SetupCard from '../SetupCard';
 import { spouseOf, useStore } from '../store';
 import { useTheme } from '../theme';
-import { Btn, Card, Chip, H2, Hint, Pill, SegRow } from '../ui';
+import { Btn, Card, Chip, H2, Hint, HelpScope, Pill, SegRow } from '../ui';
 
 export default function CalendarScreen(): React.ReactElement {
   const t = useTheme();
@@ -30,7 +30,7 @@ export default function CalendarScreen(): React.ReactElement {
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-      {!state.configured || showSetup ? <SetupCard onDone={() => setShowSetup(false)} /> : null}
+      {!state.configured || showSetup ? <HelpScope><SetupCard onDone={() => setShowSetup(false)} /></HelpScope> : null}
       {soon.length ? (
         <Card style={{ gap: 4, borderWidth: 2, borderColor: t.meet }}>
           {soon.map((m) => (
@@ -180,7 +180,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
               ) : null}
             </View>
           ) : null}
-          {three ? <Hint>이 날 당직은 {dutyTeam(state, date)}팀입니다. ({posOf(state.anchor, date) === 0 ? '내 당직일' : '내 비번 ' + posOf(state.anchor, date) + '일차'})</Hint> : null}
+          {three ? <Hint keep>이 날 당직은 {dutyTeam(state, date)}팀입니다. ({posOf(state.anchor, date) === 0 ? '내 당직일' : '내 비번 ' + posOf(state.anchor, date) + '일차'})</Hint> : null}
           {state.pattern.t === 'manual' ? (
             <View style={{ gap: 6 }}>
               <Text style={{ color: t.ink2, fontSize: 12 }}>이 날의 근무</Text>

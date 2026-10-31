@@ -9,7 +9,7 @@ import { MEff, Person, mEff, mFree, roster } from './lib/shift';
 import { markWrite, newId, useStore } from './store';
 import { Poll } from './types';
 import { kindColors, useTheme } from './theme';
-import { Btn, Card, H2, Hint } from './ui';
+import { Btn, Card, H2, Help, Hint } from './ui';
 
 const PARTNER = '#2A3F6B';
 /** 오늘 날짜 표시색 (선택 테두리와 구분) */
@@ -17,13 +17,17 @@ const TODAY = '#F59E0B';
 /** 연가(병가 포함)를 한꺼번에 갈 수 있는 한도: 총 인원의 3분의 1. 이를 넘으면 보강근무가 필요합니다. */
 const LEAVE_DIV = 3;
 const SIZE_KEY = 'fire-shift-teamsize-v1';
-/** 육아시간 동그라미의 사람별 색. 근무 색(붉은·남색·초록·보라)과 팀 일정(청록)·모임(분홍)과 겹치지 않게 골랐습니다. */
-const CARE_COLORS = ['#E8710A', '#1E88E5', '#A67C00', '#795548', '#546E7A', '#9E9D24'];
+/** 육아시간 색: 내 것은 항상 주황, 배우자 것은 항상 파랑. 그 밖의 사람은 아래 색을 이름순으로 씁니다. */
+export const CARE_MINE = '#E67E22';
+export const CARE_SPOUSE = '#1E88E5';
+const CARE_OTHERS = ['#A67C00', '#795548', '#546E7A', '#9E9D24', '#8E24AA', '#00897B'];
 
-/** 사람별 육아시간 색 (이름순으로 정해서 모든 폰에서 같은 색) */
-export function careColor(all: { id: string; name: string }[], id: string): string {
-  const sorted = all.slice().sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  return CARE_COLORS[Math.max(0, sorted.findIndex((x) => x.id === id)) % CARE_COLORS.length];
+export function careColor(all: { id: string; name: string; isMe?: boolean }[], id: string, spouseId?: string): string {
+  const me = all.find((x) => x.isMe);
+  if (me && me.id === id) return CARE_MINE;
+  if (spouseId && id === spouseId) return CARE_SPOUSE;
+  const rest = all.filter((x) => !x.isMe && x.id !== spouseId).sort((p, q) => (p.name < q.name ? -1 : p.name > q.name ? 1 : 0));
+  return CARE_OTHERS[Math.max(0, rest.findIndex((x) => x.id === id)) % CARE_OTHERS.length];
 }
 
 export function CareDot({ color, size }: { color: string; size: number }): React.ReactElement {
@@ -112,7 +116,7 @@ function dayText(e: MEff): string {
 }
 
 /** 우리 팀(같은 팀 번호) 사람들 중 근무에서 빠지는 인원(연가·교육·출장·기타)을 날짜별로 세어, 한도(총 인원의 1/3)를 넘는지 보여줍니다. */
-function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all: Person[]; today: string; y: number; m: number; code: string; myId: string; polls: Poll[]; plan: boolean; partner?: Person }): React.ReactElement {
+function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId }: { all: Person[]; today: string; y: number; m: number; code: string; myId: string; polls: Poll[]; plan: boolean; partner?: Person; spouseId?: string }): React.ReactElement {
   const t = useTheme();
   const { update, reportErr } = useStore();
   const ev = eventsByDate(polls);
@@ -193,8 +197,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all:
   useEffect(() => { if (editId) { setEditId(null); setEvName(''); setEvDays(1); } }, [sel]);
 
   // 사람별 색: 이름순으로 정해서 모든 사람의 폰에서 같은 색이 됩니다.
-  const sorted = all.slice().sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  const colorOf = (id: string): string => CARE_COLORS[Math.max(0, sorted.findIndex((x) => x.id === id)) % CARE_COLORS.length];
+  const colorOf = (id: string): string => careColor(all, id, spouseId);
   const careOf = (s: string): { inn: Person[]; out: Person[] } => {
     const inn: Person[] = []; const out: Person[] = [];
     team.slice().sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).forEach((p) => {
@@ -301,7 +304,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all:
         <Dot color={EV_COLOR.meet} label="확정된 모임" square />
       </View>
       {plan ? <View style={{ gap: 6 }}>
-        <Text style={{ color: t.ink, fontSize: 13 }}>육아시간: 칸의 <Text style={{ fontWeight: '800' }}>왼쪽 아래 모서리는 출근</Text> 때, <Text style={{ fontWeight: '800' }}>오른쪽 아래 모서리는 퇴근</Text> 때 쓰는 사람입니다. (한도 계산에는 세지 않습니다)</Text>
+        <Help>        <Text style={{ color: t.ink, fontSize: 13 }}>육아시간: 칸의 <Text style={{ fontWeight: '800' }}>왼쪽 아래 모서리는 출근</Text> 때, <Text style={{ fontWeight: '800' }}>오른쪽 아래 모서리는 퇴근</Text> 때 쓰는 사람입니다. (한도 계산에는 세지 않습니다)</Text></Help>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {team.slice().sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).map((p) => (
             <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -335,7 +338,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all:
             if (!people.length) return null;
             return (
               <View style={{ gap: 4, paddingTop: 2 }}>
-                <Text style={{ color: t.ink2, fontSize: 13 }}>육아시간 {people.length}명 (한도에는 세지 않음, 보강 판단은 직접)</Text>
+                <Text style={{ color: t.ink2, fontSize: 13 }}>육아시간 {people.length}명</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                   {people.map((p) => (
                     <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -353,11 +356,11 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all:
             </Text>
           ) : null}
         </View>
-      ) : <Text style={{ color: t.ink2, fontSize: 13 }}>{plan ? '날짜를 누르면 그날 빠지는 사람과 남은 인원이 나오고, 팀 일정(직장교육·회식 등)도 올릴 수 있습니다.' : '날짜를 누르면 그날 일정을 보고 올릴 수 있습니다.'}</Text>}
+      ) : <Help><Text style={{ color: t.ink2, fontSize: 13 }}>{plan ? '날짜를 누르면 그날 빠지는 사람과 남은 인원이 나오고, 팀 일정(직장교육·회식 등)도 올릴 수 있습니다.' : '날짜를 누르면 그날 일정을 보고 올릴 수 있습니다.'}</Text></Help>}
       {sel ? (
         <View style={{ borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, gap: 8 }}>
           <Text style={{ color: t.ink, fontSize: 14, fontWeight: '700' }}>{sp ? sp[1] + '월 ' + sp[2] + '일' : ''} {plan ? '팀 일정' : '모임 일정'}</Text>
-          {(ev[sel] || []).length === 0 ? <Text style={{ color: t.ink2, fontSize: 13 }}>올라온 일정이 없습니다. 아래에 이름만 입력하면 됩니다.</Text> : null}
+          {(ev[sel] || []).length === 0 ? <Help><Text style={{ color: t.ink2, fontSize: 13 }}>올라온 일정이 없습니다. 아래에 이름만 입력하면 됩니다.</Text></Help> : null}
           {(ev[sel] || []).map((e) => {
             const mine = e.id.indexOf('p' + myId + '.') === 0;
             const canEdit = mine && e.kind !== 'meet';
@@ -375,12 +378,12 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all:
               </View>
             );
           })}
-          {(ev[sel] || []).some((e) => e.kind !== 'meet' && e.id.indexOf('p' + myId + '.') === 0) ? <Text style={{ color: t.ink2, fontSize: 12 }}>내가 올린 일정은 이름을 눌러 수정할 수 있습니다.</Text> : null}
+          {(ev[sel] || []).some((e) => e.kind !== 'meet' && e.id.indexOf('p' + myId + '.') === 0) ? <Help><Text style={{ color: t.ink2, fontSize: 12 }}>내가 올린 일정은 이름을 눌러 수정할 수 있습니다.</Text></Help> : null}
           <View style={{ gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: t.line }}>
             <Text style={{ color: editId ? t.accent : t.ink2, fontSize: 12, fontWeight: editId ? '700' : '400' }}>
               {editId
                 ? '일정 수정 — ' + (() => { const p = polls.find((x) => x.id === editId); const q = p && p.dates[0] ? parse(p.dates[0]) : null; return q ? q[1] + '월 ' + q[2] + '일부터' : ''; })() + ' (시작일은 바뀌지 않습니다)'
-                : '이 날부터 일정 올리기 (소모임 모두에게 보입니다)'}
+                : '이 날부터 일정 올리기'}
             </Text>
             <TextInput
               value={evName} onChangeText={setEvName} maxLength={30} placeholder="일정 이름을 입력하세요"
@@ -465,7 +468,7 @@ export function TeamLeaveCard(): React.ReactElement | null {
       ) : (
         <>
           <MonthNav view={view} move={move} />
-          <View {...swipe}><TeamView all={ms} today={today} y={view.y} m={view.m} code={state.cloud.code} myId={state.cloud.myId} polls={state.polls} plan={plan} partner={partner} /></View>
+          <View {...swipe}><TeamView all={ms} today={today} y={view.y} m={view.m} code={state.cloud.code} myId={state.cloud.myId} polls={state.polls} plan={plan} partner={partner} spouseId={state.cloud.pair === true ? others[0]?.id : undefined} /></View>
         </>
       )}
     </Card>

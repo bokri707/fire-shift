@@ -17,8 +17,27 @@ export function H2({ children }: { children: React.ReactNode }): React.ReactElem
   return <Text style={{ color: t.ink, fontSize: 16, fontWeight: '700' }}>{children}</Text>;
 }
 
-export function Hint({ children, bad }: { children: React.ReactNode; bad?: boolean }): React.ReactElement {
+/**
+ * 설명 글 표시 스위치. false이면 설정 탭과 처음 설정 화면 말고는 설명 글을 숨깁니다.
+ * 나중에 설명을 다시 보이게 하려면 true로 바꾸면 됩니다. (오류·상태 메시지는 이와 상관없이 항상 보입니다.)
+ */
+export const HELP_ON = false;
+const HelpCtx = React.createContext(false);
+/** 이 안에서는 설명 글을 항상 보여 줍니다. (설정 탭, 처음 설정) */
+export function HelpScope({ children }: { children: React.ReactNode }): React.ReactElement {
+  return <HelpCtx.Provider value={true}>{children}</HelpCtx.Provider>;
+}
+/** 설명 글 묶음: 설명 표시가 꺼져 있으면 아무것도 그리지 않습니다. */
+export function Help({ children }: { children: React.ReactNode }): React.ReactElement | null {
+  const on = React.useContext(HelpCtx);
+  return HELP_ON || on ? <>{children}</> : null;
+}
+
+/** 안내 글. 오류(bad)나 상태(keep)가 아니면 설명으로 보고 설명 표시가 꺼졌을 때 숨깁니다. */
+export function Hint({ children, bad, keep }: { children: React.ReactNode; bad?: boolean; keep?: boolean }): React.ReactElement | null {
   const t = useTheme();
+  const on = React.useContext(HelpCtx);
+  if (!HELP_ON && !on && !bad && !keep) return null;
   return <Text style={{ color: bad ? t.bad : t.ink2, fontSize: 12.5, lineHeight: 18 }}>{children}</Text>;
 }
 

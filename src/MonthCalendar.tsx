@@ -7,7 +7,7 @@ import { Poll } from './types';
 import { LBL, allMeets, eff, hasManyGroups, mEff } from './lib/shift';
 import { spouseOf, useStore } from './store';
 import { kindColors, useTheme } from './theme';
-import { Btn, Card } from './ui';
+import { Btn, Card, Help } from './ui';
 
 const GAP = 4;
 /** 육아시간 점: 내 것은 주황, 배우자 것은 파랑 (왼쪽은 출근 때, 오른쪽은 퇴근 때) */
@@ -187,7 +187,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
           return weeks.map((w, wi) => <View key={'w' + wi} style={{ flexDirection: 'row', columnGap: GAP }}>{w}</View>);
         })()}
       </View>
-      <Text style={{ color: t.ink2, fontSize: 11.5, marginTop: 2 }}>달력을 좌우로 밀면 달이 바뀝니다.</Text>
+      <Help><Text style={{ color: t.ink2, fontSize: 11.5, marginTop: 2 }}>달력을 좌우로 밀면 달이 바뀝니다.</Text></Help>
       {careAny ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
@@ -200,7 +200,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
               <Text style={{ color: t.ink2, fontSize: 12 }}>배우자 육아시간</Text>
             </View>
           ) : null}
-          <Text style={{ color: t.ink2, fontSize: 12 }}>칩 왼쪽은 출근 때, 오른쪽은 퇴근 때</Text>
+          <Help><Text style={{ color: t.ink2, fontSize: 12 }}>칩 왼쪽은 출근 때, 오른쪽은 퇴근 때</Text></Help>
         </View>
       ) : null}
       {meetList.length ? (
