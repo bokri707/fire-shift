@@ -84,9 +84,61 @@ begin
   update teams set pair = coalesce(p_pair, false) where code = p_code;
 end $$;
 
+-- 소모임 코드 추측 제한: 한 접속 주소가 10분 안에 없는 코드를 30가지 틀리면 잠시 막습니다.
+-- 접속 주소와 코드는 원문이 아니라 md5로만 남기고, 1시간이 지나면 지웁니다.
+create table if not exists public.miss_log (
+  ip_hash text not null,
+  code_hash text not null,
+  at timestamptz not null default now(),
+  primary key (ip_hash, code_hash)
+);
+create index if not exists miss_log_at_idx on public.miss_log (at);
+alter table public.miss_log enable row level security;
+revoke all on table public.miss_log from public, anon, authenticated;
+
+-- 위조할 수 없는 Cloudflare 헤더만 씁니다. (x-forwarded-for, true-client-ip는 접속자가 꾸며 보낼 수 있습니다.)
+create or replace function public._client_ip()
+returns text language sql stable set search_path = public as $$
+  select nullif((nullif(current_setting('request.headers', true), '')::jsonb) ->> 'cf-connecting-ip', '');
+$$;
+
+create or replace function public._guard_code(p_code text)
+returns boolean language plpgsql volatile security definer set search_path = public as $$
+declare
+  ip text := public._client_ip();
+  iph text;
+  found_team boolean;
+  tries integer;
+begin
+  select exists (select 1 from teams where code = p_code) into found_team;
+  -- 접속 주소를 모르면(서버 내부 호출 등) 막지 않습니다.
+  if ip is null then
+    return found_team;
+  end if;
+  iph := md5(ip);
+  select count(*) into tries from miss_log where ip_hash = iph and at > now() - interval '10 minutes';
+  if tries >= 30 then
+    raise exception 'too_many_tries';
+  end if;
+  if not found_team then
+    -- 같은 코드를 반복 조회(지워진 소모임을 계속 동기화하는 폰)는 1번으로만 칩니다.
+    insert into miss_log (ip_hash, code_hash) values (iph, md5(coalesce(p_code, '')))
+    on conflict (ip_hash, code_hash) do update set at = now();
+    delete from miss_log where at < now() - interval '1 hour';
+  end if;
+  return found_team;
+end;
+$$;
+
+revoke all on function public._client_ip() from public, anon, authenticated;
+revoke all on function public._guard_code(text) from public, anon, authenticated;
+
 create or replace function public.get_team(p_code text)
-returns json language sql stable security definer set search_path = public as $$
-  select row_to_json(t) from (select code, name, base, kind, pair from teams where code = p_code) t;
+returns json language plpgsql volatile security definer set search_path = public as $$
+begin
+  perform public._guard_code(p_code);
+  return (select row_to_json(t) from (select code, name, base, kind, pair from teams where code = p_code) t);
+end;
 $$;
 
 create or replace function public.upsert_member(p_code text, p_id text, p_name text, p_team integer, p_anchor date, p_ex jsonb)
@@ -145,8 +197,10 @@ begin
 end $$;
 
 create or replace function public.fetch_team(p_code text)
-returns json language sql stable security definer set search_path = public as $$
-  select json_build_object(
+returns json language plpgsql volatile security definer set search_path = public as $$
+begin
+  perform public._guard_code(p_code);
+  return json_build_object(
     'kind', (select t.kind from teams t where t.code = p_code),
     'pair', (select t.pair from teams t where t.code = p_code),
     'members', coalesce((select json_agg(json_build_object('id', m.id, 'name', m.name, 'team', m.team, 'ex', m.ex) order by m.updated_at)
@@ -156,6 +210,7 @@ returns json language sql stable security definer set search_path = public as $$
     'votes', coalesce((select json_agg(json_build_object('poll_id', v.poll_id, 'member_id', v.member_id, 'dates', v.dates))
                        from votes v join polls p on p.id = v.poll_id where p.team_code = p_code), '[]'::json)
   );
+end;
 $$;
 
 -- 내용이 바뀌지 않았으면 데이터를 다시 보내지 않아 전송량을 줄입니다.
