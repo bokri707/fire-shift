@@ -9,10 +9,13 @@ import PairScreen from './src/screens/PairScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TeamScreen from './src/screens/TeamScreen';
 import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
+import { WD, fromIdx, idx, parse, wdOf } from './src/lib/date';
+import { eff } from './src/lib/shift';
 import { bump } from './src/lib/usage';
 import { StoreProvider, focusKind, groupKind, useStore } from './src/store';
 import { useTheme } from './src/theme';
 
+const NAVY = '#1E4B6B';
 type Tab = 'cal' | 'team' | 'meet' | 'pair' | 'set';
 const TABS: { v: Tab; label: string }[] = [
   { v: 'cal', label: '달력' },
@@ -24,7 +27,7 @@ const TABS: { v: Tab; label: string }[] = [
 
 function Shell(): React.ReactElement {
   const t = useTheme();
-  const { state, update } = useStore();
+  const { state, update, today } = useStore();
   const [tab, setTab] = useState<Tab>(codeFromUrl() ? 'team' : 'cal');
   useEffect(() => { if (Platform.OS === 'web') autoLeaveKakao(); }, []);
 
@@ -56,20 +59,31 @@ function Shell(): React.ReactElement {
     setTab((tb) => (tb === 'team' && curKind === 'meet' ? 'meet' : tb === 'meet' && curKind === 'team' ? 'team' : tb));
   }, [curCode, curKind]);
   const kakao = Platform.OS === 'web' && inKakaoBrowser();
+  const tp = parse(today);
+  const te = eff(state, today);
+  const tm = eff(state, fromIdx(idx(today) + 1));
   const top = Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 24) : 52;
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: t.bg, paddingTop: top }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: t.bg, paddingTop: kakao ? top : 0 }}>
       <CloudSync tab={cur} />
       <DutyNotifier />
-      <StatusBar style={t.dark ? 'light' : 'dark'} />
+      <StatusBar style={kakao && !t.dark ? 'dark' : 'light'} />
       {kakao ? (
         <Pressable onPress={openInExternalBrowser} style={{ backgroundColor: t.accent, paddingVertical: 10, paddingHorizontal: 18 }}>
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>카카오톡 안에서는 정보가 사라질 수 있어요. 눌러서 크롬(기본 브라우저)으로 열기 ›</Text>
         </Pressable>
       ) : null}
-      <View style={{ paddingHorizontal: 18, paddingTop: 6 }}>
-        <Text style={{ color: t.ink2, fontSize: 12 }}>당 · 비 · 비</Text>
-        <Text style={{ color: t.ink, fontSize: 26, fontWeight: '700' }}>소방 교대달력</Text>
+      <View style={{ backgroundColor: NAVY, paddingHorizontal: 18, paddingTop: kakao ? 12 : top + 8, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexShrink: 1 }}>
+          <Text style={{ color: '#A9C3D6', fontSize: 12 }}>{tp[1]}월 {tp[2]}일 {WD[wdOf(today)]}요일</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: '700' }}>소방 교대달력</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <View style={{ backgroundColor: te.kind === 'duty' ? '#E8503E' : 'rgba(255,255,255,0.18)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>오늘 {te.label}</Text>
+          </View>
+          <Text style={{ color: '#A9C3D6', fontSize: 11 }}>내일 {tm.label}</Text>
+        </View>
       </View>
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: t.line, backgroundColor: t.surface, marginTop: 8 }}>
         {shown.map((x) => (

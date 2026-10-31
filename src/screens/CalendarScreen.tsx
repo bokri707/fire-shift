@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import {
   KeyboardAvoidingView, LayoutChangeEvent, Modal, Platform, Pressable, ScrollView, Text, TextInput, View,
 } from 'react-native';
-import { WD, fmt, fromIdx, idx, parse, wdOf } from '../lib/date';
+import { WD, fromIdx, idx, parse, wdOf } from '../lib/date';
 import { downloadIcs, dutyIcs } from '../lib/ics';
 import { holName } from '../lib/holidays';
 import { groupEvents } from '../lib/events';
-import { LBL, OFF_LABELS, WORK_LABELS, allMeets, dutyTeam, eff, hasManyGroups, isThree, ledger, nextDuty, posOf } from '../lib/shift';
+import { LBL, OFF_LABELS, WORK_LABELS, allMeets, dutyTeam, eff, hasManyGroups, isThree, ledger, posOf } from '../lib/shift';
 import MonthCalendar from '../MonthCalendar';
 import SetupCard from '../SetupCard';
 import { useStore } from '../store';
-import { kindColors, useTheme } from '../theme';
+import { useTheme } from '../theme';
 import { Btn, Card, Chip, H2, Hint, Pill, SegRow } from '../ui';
 
 export default function CalendarScreen(): React.ReactElement {
@@ -19,12 +19,6 @@ export default function CalendarScreen(): React.ReactElement {
   const [sel, setSel] = useState<string | null>(null);
   const [focus, setFocus] = useState<string | undefined>(undefined);
   const [showSetup, setShowSetup] = useState(false);
-
-  const te = eff(state, today);
-  const tp = parse(today);
-  const nd = nextDuty(state, today);
-  const th = holName(today);
-  const tc = kindColors(t, te.kind);
 
   const rows = ledger(state);
   const meets = allMeets(state).filter((p) => p.final >= today).sort((a, b) => (a.final < b.final ? -1 : 1));
@@ -58,34 +52,6 @@ export default function CalendarScreen(): React.ReactElement {
           ))}
         </Card>
       ) : null}
-      <Card style={{ gap: 4 }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-          <Text style={{ color: t.ink, fontSize: 18, fontWeight: '700' }}>오늘 {tp[1]}월 {tp[2]}일 {WD[wdOf(today)]}요일</Text>
-          {th ? (
-            <View style={{ backgroundColor: t.hol, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 2 }}>
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>공휴일 · {th}</Text>
-            </View>
-          ) : null}
-        </View>
-        <Text style={{ color: tc.fg, fontSize: 56, fontWeight: '700', lineHeight: 66 }}>
-          {te.label}
-          {te.sub ? <Text style={{ fontSize: 14, fontWeight: '500' }}>  {te.sub}</Text> : null}
-        </Text>
-        <Text style={{ color: t.ink, fontSize: 14 }}>
-          {nd ? (isThree(state.pattern) ? '다음 당직 ' : '다음 근무 ') + fmt(nd.iso) + ' · ' + (nd.days === 1 ? '내일' : nd.days + '일 뒤') : '앞으로 120일 안에 예정된 근무가 없습니다.'}
-        </Text>
-        {meets.map((m) => {
-          const dd = idx(m.final) - idx(today);
-          return (
-            <Text key={m.id} style={{ color: t.meet, fontSize: 14, fontWeight: '700' }}>
-              모임 {fmt(m.final)} · {many ? m.group + ' · ' : ''}{m.title} · {dd === 0 ? '오늘' : dd + '일 뒤'}
-            </Text>
-          );
-        })}
-        <Pressable onPress={() => setShowSetup((v) => !v)} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginTop: 6 }}>
-          <Text style={{ color: t.accent, fontSize: 13, fontWeight: '600' }}>{isThree(state.pattern) ? '내 팀 ' + state.team + '팀' : state.pattern.n} · 설정 {showSetup ? '닫기' : '바꾸기'}</Text>
-        </Pressable>
-      </Card>
 
       <MonthCalendar onPressDate={setSel} focusDate={focus} />
 
