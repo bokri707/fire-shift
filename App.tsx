@@ -15,6 +15,7 @@ import { StoreProvider, focusKind, groupKind, useStore } from './src/store';
 import { useTheme } from './src/theme';
 
 const NAVY = '#1E4B6B';
+const WARN = '#9A3324';
 type Tab = 'cal' | 'team' | 'meet' | 'set';
 const TABS: { v: Tab; label: string }[] = [
   { v: 'cal', label: '달력' },
@@ -70,16 +71,16 @@ function Shell(): React.ReactElement {
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>카카오톡 안에서는 정보가 사라질 수 있어요. 눌러서 크롬(기본 브라우저)으로 열기 ›</Text>
         </Pressable>
       ) : null}
-      <View style={{ backgroundColor: NAVY, paddingHorizontal: 18, paddingTop: kakao ? 12 : top + 8, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ backgroundColor: tm.works ? WARN : NAVY, paddingHorizontal: 18, paddingTop: kakao ? 12 : top + 8, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexShrink: 1 }}>
           <Text style={{ color: '#A9C3D6', fontSize: 12 }}>{tp[1]}월 {tp[2]}일 {WD[wdOf(today)]}요일</Text>
           <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: '700' }}>소방 교대달력</Text>
         </View>
         <View style={{ alignItems: 'flex-end', gap: 2 }}>
-          <View style={{ backgroundColor: te.kind === 'duty' ? '#E8503E' : 'rgba(255,255,255,0.18)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}>
+          <View style={{ backgroundColor: te.kind === 'duty' && !tm.works ? '#E8503E' : 'rgba(255,255,255,0.18)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}>
             <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>오늘 {te.label}</Text>
           </View>
-          <Text style={{ color: '#A9C3D6', fontSize: 11 }}>내일 {tm.label}</Text>
+          <Text style={{ color: tm.works ? '#FFFFFF' : '#A9C3D6', fontSize: tm.works ? 14 : 11, fontWeight: tm.works ? '700' : '400' }}>내일 {tm.label}</Text>
         </View>
       </View>
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: t.line, backgroundColor: t.surface, marginTop: 8 }}>

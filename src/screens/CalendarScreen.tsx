@@ -112,7 +112,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
   const e = eff(state, date);
   const p = parse(date);
   const cur = state.ex[date];
-  const [type, setType] = useState<DraftType>(cur ? (cur.type === 'care' ? 'careOut' : cur.type) : 'none');
+  const [type, setType] = useState<DraftType>(cur ? (cur.type === 'care' ? 'careOut' : cur.type === 'memo' ? 'none' : cur.type) : 'none');
   const [who, setWho] = useState(cur ? cur.who : '');
   const [memo, setMemo] = useState(cur ? cur.memo : '');
   const [err, setErr] = useState('');
@@ -125,7 +125,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
     if (type === 'swap' && !who.trim()) { setErr('맞교대한 동료 이름을 입력하세요.'); return; }
     update((s) => {
       const ex = { ...s.ex };
-      if (type === 'none') delete ex[date];
+      if (type === 'none') { if (memo.trim()) ex[date] = { type: 'memo', who: '', memo: memo.trim() }; else delete ex[date]; }
       else ex[date] = { type, who: type === 'swap' ? who.trim() : '', memo: memo.trim() };
       const manual = { ...s.manual };
       if (s.pattern.t === 'manual') { if (mlabel === '휴') delete manual[date]; else manual[date] = mlabel; }
