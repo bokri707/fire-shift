@@ -95,12 +95,27 @@ function Chips({ items, value, onPick }: { items: { id: string; label: string }[
   );
 }
 
+/** 그날 한 사람의 근무·상태를 한 줄 글로 (예: "기타 (원래 당직) · 육아시간(퇴근 때)") */
+function dayText(e: MEff): string {
+  const parts: string[] = [];
+  if (e.kind === 'leave') parts.push('연가 (원래 ' + e.label + ')');
+  else if (e.kind === 'edu') parts.push((e.why || '교육') + ' (원래 ' + e.label + ')');
+  else if (e.kind === 'swap') parts.push('맞교대 ' + (e.works ? '근무' : '쉼') + ' (원래 ' + e.label + ')');
+  else parts.push(e.label);
+  if (e.care === 'in') parts.push('육아시간(출근 때)');
+  else if (e.care === 'out') parts.push('육아시간(퇴근 때)');
+  else if (e.care === 'both') parts.push('육아시간(출근·퇴근 모두)');
+  return parts.join(' · ');
+}
+
 interface ViewProps { me: Person; others: Person[]; today: string; y: number; m: number }
 
 /** 나와 배우자(같은 소모임 동료)의 근무를 한 달력에 겹쳐 봅니다. */
 function PairView({ me, others, today, y, m }: ViewProps): React.ReactElement {
   const t = useTheme();
+  const { state } = useStore();
   const [pid, setPid] = useState<string>('');
+  const [sel, setSel] = useState<string>('');
   const partner = others.find((x) => x.id === pid) || others[0];
   const first = firstWd(y, m);
   const n = daysInMonth(y, m);
@@ -116,15 +131,20 @@ function PairView({ me, others, today, y, m }: ViewProps): React.ReactElement {
     const isToday = s === today;
     const wd = (first + d - 1) % 7;
     cells.push(
-      <View key={s} style={{ flex: 1, minHeight: 82, gap: 3, padding: 3, borderRadius: 8, borderWidth: isToday ? 2 : 1, borderColor: isToday ? t.ink : t.line, backgroundColor: bothWork ? BOTH : t.surface }}>
+      <Pressable key={s} onPress={() => setSel(sel === s ? '' : s)} accessibilityRole="button" style={{ flex: 1, minHeight: 82, gap: 3, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s ? 2 : 1, borderColor: sel === s ? t.accent : isToday ? t.ink : t.line, backgroundColor: bothWork ? BOTH : t.surface }}>
         <Text style={{ fontSize: 12, fontWeight: '700', color: wd === 0 ? t.sun : wd === 6 ? t.sat : t.ink, paddingLeft: 2 }}>{d}</Text>
         <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>
           {visible(a) ? <Mark e={a} color={t.duty} /> : null}
           {visible(b) ? <Mark e={b} color={PARTNER} /> : null}
         </View>
-      </View>,
+      </Pressable>,
     );
   }
+  // 누른 날짜가 지금 보는 달이 아니면 상세 패널을 닫습니다.
+  const sp = sel ? parse(sel) : null;
+  const selDate = sp && sp[0] === y && sp[1] === m ? sel : '';
+  const selD = sp ? sp[2] : 0;
+  const mine = selDate ? state.ex[selDate] : undefined;
   return (
     <>
       {others.length > 1 ? <Chips items={others.map((x) => ({ id: x.id, label: x.name }))} value={partner.id} onPick={setPid} /> : null}
@@ -134,10 +154,29 @@ function PairView({ me, others, today, y, m }: ViewProps): React.ReactElement {
         <Dot color={BOTH} label="둘 다 근무 (위아래로 같이 표시)" square />
       </View>
       <Weeks cells={cells} />
+      {selDate ? (
+        <View style={{ gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: t.line, backgroundColor: t.surface }}>
+          <Text style={{ color: t.ink, fontSize: 15, fontWeight: '700' }}>{m}월 {selD}일 ({WD[(first + selD - 1) % 7]})</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.duty }} />
+            <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}><Text style={{ fontWeight: '700' }}>{me.name}</Text>  {dayText(mEff(me, selDate))}</Text>
+          </View>
+          {mine && (mine.who || mine.memo) ? (
+            <Text style={{ color: t.ink2, fontSize: 13, paddingLeft: 20 }}>
+              {mine.who ? '맞교대 상대: ' + mine.who : ''}{mine.who && mine.memo ? ' · ' : ''}{mine.memo ? '메모: ' + mine.memo : ''}
+            </Text>
+          ) : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: PARTNER }} />
+            <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}><Text style={{ fontWeight: '700' }}>{partner.name}</Text>  {dayText(mEff(partner, selDate))}</Text>
+          </View>
+          <Hint>메모는 쓴 사람의 폰에만 저장되어, 상대가 적은 메모는 여기서 볼 수 없습니다.</Hint>
+        </View>
+      ) : null}
       <Text style={{ color: t.ink, fontSize: 13 }}>
         둘 다 근무하는 날 <Text style={{ fontWeight: '700', color: t.duty }}>{both}일</Text>
       </Text>
-      <Hint>한 사람만 근무하는 날은 칸 가운데에 그 사람 색으로 하나만 보입니다. 붉은색은 나, 남색은 {partner.name}입니다. 둘 다 근무하는 날은 노란 칸에 위(나)·아래(상대)로 함께 나옵니다. 교육·연가가 겹쳐도 위아래로 같이 보입니다. 주황색 육은 육아시간을 쓴 날입니다. 당 앞의 육은 출근 때, 당 뒤의 육은 퇴근 때, 앞뒤 모두 있으면 둘 다 쓴 것입니다.</Hint>
+      <Hint>날짜 칸을 누르면 그날 내용이 아래에 나옵니다. 한 사람만 근무하는 날은 칸 가운데에 그 사람 색으로 하나만 보입니다. 붉은색은 나, 남색은 {partner.name}입니다. 둘 다 근무하는 날은 노란 칸에 위(나)·아래(상대)로 함께 나옵니다. 교육·연가가 겹쳐도 위아래로 같이 보입니다. 주황색 육은 육아시간을 쓴 날입니다. 당 앞의 육은 출근 때, 당 뒤의 육은 퇴근 때, 앞뒤 모두 있으면 둘 다 쓴 것입니다.</Hint>
     </>
   );
 }
