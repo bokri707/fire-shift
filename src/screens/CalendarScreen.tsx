@@ -13,14 +13,7 @@ import { useStore } from '../store';
 import { useTheme } from '../theme';
 import { Btn, Card, Chip, H2, Hint, Pill, SegRow } from '../ui';
 
-const SHORTCUTS: { k: 'leave' | 'meet' | 'set' | 'alarm'; g: string; label: string }[] = [
-  { k: 'leave', g: '휴', label: '연가·휴가' },
-  { k: 'meet', g: '+', label: '일정·모임' },
-  { k: 'alarm', g: '알', label: '알람 수정' },
-  { k: 'set', g: '설', label: '설정' },
-];
-
-export default function CalendarScreen({ onGo }: { onGo?: (k: 'meet' | 'set' | 'alarm') => void }): React.ReactElement {
+export default function CalendarScreen(): React.ReactElement {
   const t = useTheme();
   const { state, today } = useStore();
   const [sel, setSel] = useState<string | null>(null);
@@ -37,22 +30,6 @@ export default function CalendarScreen({ onGo }: { onGo?: (k: 'meet' | 'set' | '
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        {SHORTCUTS.map((x) => (
-          <Pressable
-            key={x.k}
-            accessibilityRole="button"
-            accessibilityLabel={x.label}
-            onPress={() => (x.k === 'leave' ? setSel(today) : onGo && onGo(x.k))}
-            style={{ flex: 1, alignItems: 'center', gap: 6, backgroundColor: t.surface, borderWidth: 1, borderColor: t.line, borderRadius: 14, paddingVertical: 10 }}
-          >
-            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: t.onAccent, fontSize: x.g === '+' ? 22 : 15, fontWeight: '700' }}>{x.g}</Text>
-            </View>
-            <Text style={{ color: t.ink, fontSize: 12, fontWeight: '600' }}>{x.label}</Text>
-          </Pressable>
-        ))}
-      </View>
       {!state.configured || showSetup ? <SetupCard onDone={() => setShowSetup(false)} /> : null}
       {soon.length ? (
         <Card style={{ gap: 4, borderWidth: 2, borderColor: t.meet }}>

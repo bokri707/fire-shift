@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Platform, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
 import { applyBackup, makeBackup, readBackup } from '../lib/backup';
 import { useTheme } from '../theme';
@@ -10,16 +10,9 @@ import { Btn, Card, Chip, H2, Hint } from '../ui';
 
 const hlabel = (h: number): string => (h < 12 ? '오전 ' + (h === 0 ? 12 : h) : '오후 ' + (h === 12 ? 12 : h - 12)) + '시';
 
-export default function SettingsScreen({ onDone, focusAlarm }: { onDone?: () => void; focusAlarm?: number }): React.ReactElement {
+export default function SettingsScreen({ onDone }: { onDone?: () => void }): React.ReactElement {
   const t = useTheme();
   const { state, update, resetAll } = useStore();
-  const sv = useRef<ScrollView>(null);
-  const alarmY = useRef(0);
-  useEffect(() => {
-    if (!focusAlarm) return;
-    const id = setTimeout(() => sv.current?.scrollTo({ y: Math.max(0, alarmY.current - 8), animated: true }), 60);
-    return () => clearTimeout(id);
-  }, [focusAlarm]);
   const [armed, setArmed] = useState(false);
   const [code, setCode] = useState('');
   const [paste, setPaste] = useState('');
@@ -73,7 +66,7 @@ export default function SettingsScreen({ onDone, focusAlarm }: { onDone?: () => 
   };
 
   return (
-    <ScrollView ref={sv} contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <SetupCard onDone={onDone} />
 
       <Card style={{ gap: 12 }}>
@@ -112,7 +105,6 @@ export default function SettingsScreen({ onDone, focusAlarm }: { onDone?: () => 
       </Card>
 
       {Platform.OS !== 'web' && notifySupported() ? (
-        <View onLayout={(ev) => { alarmY.current = ev.nativeEvent.layout.y; }}>
         <Card style={{ gap: 10 }}>
           <H2>알림</H2>
           <Hint>근무표나 맞교대를 바꾸면 알림도 저절로 바뀝니다. 근무 알림은 앞으로 14일치입니다. 모임 알림은 앱을 열어 서버에서 확정된 모임을 받은 뒤부터 울립니다.</Hint>
@@ -133,7 +125,6 @@ export default function SettingsScreen({ onDone, focusAlarm }: { onDone?: () => 
             </View>
           ) : null}
         </Card>
-        </View>
       ) : null}
 
       <Card style={{ gap: 10 }}>
