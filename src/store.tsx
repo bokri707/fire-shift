@@ -41,7 +41,7 @@ export function switchGroup(s: AppState, code: string): AppState {
   if (!g) return s;
   const rest = (s.others || []).filter((x) => x.code !== code);
   rest.push({ ...s.cloud, members: s.members, polls: s.polls });
-  return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick, kind: g.kind }, members: g.members, polls: g.polls, others: rest };
+  return { ...s, cloud: { code: g.code, name: g.name, myId: g.myId, nick: g.nick, kind: g.kind, pair: g.pair }, members: g.members, polls: g.polls, others: rest };
 }
 
 /** 이 종류의 소모임을 보고 있지 않으면, 가입한 같은 종류 소모임 중 하나로 바꿉니다. (없으면 그대로) */

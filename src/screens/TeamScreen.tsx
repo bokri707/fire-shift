@@ -4,7 +4,7 @@ import { WD, daysInMonth, firstChar, fmt, fromIdx, idx, iso, parse, wdOf } from 
 import { LBL, Person, decPattern, isThree, mEff, mFree, manualFromEx, meetDays, roster, teamBase } from '../lib/shift';
 import { downloadIcs, meetIcs } from '../lib/ics';
 import { clearCodeFromUrl, codeFromUrl, inviteLink } from '../lib/link';
-import { cloudConfigured, createTeam, deleteMember, deletePoll, fetchTeam, genCode, getTeam, insertPoll, normCode, setTeamKind, updatePoll, upsertVote, validCode } from '../cloud';
+import { cloudConfigured, createTeam, deleteMember, deletePoll, fetchTeam, genCode, getTeam, insertPoll, normCode, setTeamKind, setTeamPair, updatePoll, upsertVote, validCode } from '../cloud';
 import { AppState, CloudInfo, Poll } from '../types';
 import MonthCalendar, { Deco } from '../MonthCalendar';
 import { CareDot, TeamLeaveCard, careColor } from '../CoupleCard';
@@ -172,7 +172,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
           if (dp) base = { ...base, team: useTeam, pattern: dp.pat, anchor: dp.anchor, manual: manualFromEx(mine ? mine.ex : {}) };
           else if (isThree(s.pattern)) base = { ...base, team: useTeam, anchor: fromIdx(idx(tm.base) + (useTeam - 1)) };
         }
-        return { ...enter({ ...base, ex, nick: s.cloud ? s.nick : nk, configured: true }, { code: tm.code, name: tm.name, myId: mine ? mine.id : newId(), nick: nk, kind: tm.kind === 'meet' ? 'meet' : 'team' }) };
+        return { ...enter({ ...base, ex, nick: s.cloud ? s.nick : nk, configured: true }, { code: tm.code, name: tm.name, myId: mine ? mine.id : newId(), nick: nk, kind: tm.kind === 'meet' ? 'meet' : 'team', pair: tm.pair === true }) };
       });
       setCode(''); setAdding(false); setResumeId(''); clearCodeFromUrl();
       setBusy(false);
@@ -277,6 +277,20 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
             }}
           />
           <Hint>근무 팀은 연가 한도·보강 계산과 육아시간을 보여주고, 모임은 일정과 투표만 보여줍니다. 바꾸면 다른 탭으로 옮겨 갑니다.</Hint>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.ink, fontSize: 14, fontWeight: '600' }}>부부(가족) 소모임으로 표시</Text>
+              <Text style={{ color: t.ink2, fontSize: 12 }}>켜면 같은 소모임의 모든 사람에게 적용되고, 부부·육아 탭이 이 소모임에서 배우자를 찾습니다.</Text>
+            </View>
+            <Switch
+              value={c.pair === true}
+              onValueChange={(v: boolean) => {
+                markWrite();
+                update((s) => (s.cloud ? { ...s, cloud: { ...s.cloud, pair: v } } : s));
+                setTeamPair(c.code, v).catch(() => reportErr('설정을 서버에 저장하지 못했습니다.'));
+              }}
+            />
+          </View>
           <Text style={{ color: t.ink2, fontSize: 12 }}>이 소모임에서 쓰는 내 별명</Text>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput value={myNick} onChangeText={(v: string) => { setMyNick(v); setNickMsg(''); }} maxLength={12} placeholderTextColor={t.ink2} style={[field, { flex: 1 }]} />

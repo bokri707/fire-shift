@@ -497,10 +497,11 @@ export function PairCard(): React.ReactElement | null {
     </Card>
   );
   // 어느 탭을 보고 있든, 부부·육아 탭은 배우자가 있는 소모임을 따로 정해서 봅니다.
-  const groups: { code: string; name: string; kind?: 'team' | 'meet'; n: number }[] = [{ code: real.cloud.code, name: real.cloud.name, kind: real.cloud.kind, n: real.members.length }]
-    .concat((real.others || []).map((g) => ({ code: g.code, name: g.name, kind: g.kind, n: g.members.length })));
+  const groups: { code: string; name: string; kind?: 'team' | 'meet'; pair?: boolean; n: number }[] = [{ code: real.cloud.code, name: real.cloud.name, kind: real.cloud.kind, pair: real.cloud.pair, n: real.members.length }]
+    .concat((real.others || []).map((g) => ({ code: g.code, name: g.name, kind: g.kind, pair: g.pair, n: g.members.length })));
   const picked = groups.find((g) => g.code === real.pairCode);
-  const auto = groups.find((g) => groupKind(g) === 'meet' && g.n > 0) || groups[0];
+  // 고른 게 없으면: 부부(가족)로 표시된 소모임 → 사람이 있는 모임 → 지금 소모임 순서
+  const auto = groups.find((g) => g.pair === true) || groups.find((g) => groupKind(g) === 'meet' && g.n > 0) || groups[0];
   const useCode = (picked || auto).code;
   const state = switchGroup(real, useCode);
   const ms = roster(state);

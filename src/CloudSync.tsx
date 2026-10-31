@@ -48,16 +48,17 @@ export default function CloudSync({ tab }: { tab: string }): null {
             changed.forEach(({ g, r }) => {
               hashes.current[g.code] = r.hash;
               const k = r.data.kind;
+              const pr = r.data.pair;
               if (next.cloud && next.cloud.code === g.code) {
-                const kindChanged = !!k && next.cloud.kind !== k;
+                const kindChanged = (!!k && next.cloud.kind !== k) || (pr !== undefined && !!next.cloud.pair !== pr);
                 if (!kindChanged && JSON.stringify(next.members) === JSON.stringify(r.data.members) && JSON.stringify(next.polls) === JSON.stringify(r.data.polls)) return;
-                next = { ...next, members: r.data.members, polls: r.data.polls, cloud: k ? { ...next.cloud, kind: k } : next.cloud };
+                next = { ...next, members: r.data.members, polls: r.data.polls, cloud: { ...next.cloud, kind: k || next.cloud.kind, pair: pr === undefined ? next.cloud.pair : pr } };
               } else if (next.others) {
                 const cur = next.others.find((o) => o.code === g.code);
                 if (!cur) return;
-                const kindChanged = !!k && cur.kind !== k;
+                const kindChanged = (!!k && cur.kind !== k) || (pr !== undefined && !!cur.pair !== pr);
                 if (!kindChanged && JSON.stringify(cur.members) === JSON.stringify(r.data.members) && JSON.stringify(cur.polls) === JSON.stringify(r.data.polls)) return;
-                next = { ...next, others: next.others.map((o) => (o.code === g.code ? { ...o, members: r.data.members, polls: r.data.polls, kind: k || o.kind } : o)) };
+                next = { ...next, others: next.others.map((o) => (o.code === g.code ? { ...o, members: r.data.members, polls: r.data.polls, kind: k || o.kind, pair: pr === undefined ? o.pair : pr } : o)) };
               }
             });
             return next;

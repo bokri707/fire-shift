@@ -31,9 +31,9 @@ export async function bumpUsage(kind: string): Promise<void> {
   await rpc('bump_usage', { p_kind: kind });
 }
 
-export async function getTeam(code: string): Promise<{ code: string; name: string; base: string; kind?: 'team' | 'meet' } | null> {
-  const r = (await rpc('get_team', { p_code: code })) as { code: string; name: string; base: string; kind?: string } | null;
-  return r ? { ...r, kind: r.kind === 'meet' ? 'meet' : 'team' } : null;
+export async function getTeam(code: string): Promise<{ code: string; name: string; base: string; kind?: 'team' | 'meet'; pair?: boolean } | null> {
+  const r = (await rpc('get_team', { p_code: code })) as { code: string; name: string; base: string; kind?: string; pair?: boolean } | null;
+  return r ? { ...r, kind: r.kind === 'meet' ? 'meet' : 'team', pair: r.pair === true } : null;
 }
 
 /** 서버에 종류 함수(create_team_k)가 아직 없으면 예전 함수로 만들고 종류는 이 폰에만 둡니다. */
@@ -44,6 +44,10 @@ export async function createTeam(code: string, name: string, base: string, kind:
     if (!/PGRST202|404/.test(String(e))) throw e;
     await rpc('create_team', { p_code: code, p_name: name, p_base: base });
   }
+}
+
+export async function setTeamPair(code: string, pair: boolean): Promise<void> {
+  await rpc('set_team_pair', { p_code: code, p_pair: pair });
 }
 
 export async function setTeamKind(code: string, kind: 'team' | 'meet'): Promise<void> {
@@ -84,8 +88,8 @@ interface PollRow { id: string; title: string; dates: string[]; final: string; c
 interface VoteRow { poll_id: string; member_id: string; dates: string[] }
 
 /** 서버의 팀원·투표를 내려받아 앱 상태에 그대로 반영할 모양으로 만듭니다. */
-export async function fetchTeam(code: string, myId: string): Promise<{ members: Member[]; polls: Poll[]; meStillThere: boolean; kind?: 'team' | 'meet' }> {
-  const r = (await rpc('fetch_team', { p_code: code })) as { kind?: string; members: MemberRow[]; polls: PollRow[]; votes: VoteRow[] };
+export async function fetchTeam(code: string, myId: string): Promise<{ members: Member[]; polls: Poll[]; meStillThere: boolean; kind?: 'team' | 'meet'; pair?: boolean }> {
+  const r = (await rpc('fetch_team', { p_code: code })) as { kind?: string; pair?: boolean; members: MemberRow[]; polls: PollRow[]; votes: VoteRow[] };
   const mrows = r.members || [];
   const prows = r.polls || [];
   const vrows = r.votes || [];
@@ -97,10 +101,10 @@ export async function fetchTeam(code: string, myId: string): Promise<{ members: 
     if (p) p.votes[v.member_id === myId ? 'me' : v.member_id] = v.dates;
   });
   const members: Member[] = mrows.filter((m) => m.id !== myId).map((m) => ({ id: m.id, name: m.name, team: m.team, ex: m.ex || {} }));
-  return { members, polls, meStillThere: mrows.some((m) => m.id === myId), kind: r.kind === 'meet' ? 'meet' : r.kind === 'team' ? 'team' : undefined };
+  return { members, polls, meStillThere: mrows.some((m) => m.id === myId), kind: r.kind === 'meet' ? 'meet' : r.kind === 'team' ? 'team' : undefined, pair: typeof r.pair === 'boolean' ? r.pair : undefined };
 }
 
-const mapTeam = (r: { kind?: string; members: MemberRow[]; polls: PollRow[]; votes: VoteRow[] }, myId: string): { members: Member[]; polls: Poll[]; meStillThere: boolean; kind?: 'team' | 'meet' } => {
+const mapTeam = (r: { kind?: string; pair?: boolean; members: MemberRow[]; polls: PollRow[]; votes: VoteRow[] }, myId: string): { members: Member[]; polls: Poll[]; meStillThere: boolean; kind?: 'team' | 'meet'; pair?: boolean } => {
   const mrows = r.members || [];
   const prows = r.polls || [];
   const vrows = r.votes || [];
@@ -112,7 +116,7 @@ const mapTeam = (r: { kind?: string; members: MemberRow[]; polls: PollRow[]; vot
     if (p) p.votes[v.member_id === myId ? 'me' : v.member_id] = v.dates;
   });
   const members: Member[] = mrows.filter((m) => m.id !== myId).map((m) => ({ id: m.id, name: m.name, team: m.team, ex: m.ex || {} }));
-  return { members, polls, meStillThere: mrows.some((m) => m.id === myId), kind: r.kind === 'meet' ? 'meet' : r.kind === 'team' ? 'team' : undefined };
+  return { members, polls, meStillThere: mrows.some((m) => m.id === myId), kind: r.kind === 'meet' ? 'meet' : r.kind === 'team' ? 'team' : undefined, pair: typeof r.pair === 'boolean' ? r.pair : undefined };
 };
 
 /** 서버 함수 fetch_team_v2가 아직 없으면(SQL 미적용) true. 이 경우 예전 방식으로 대신 받습니다. */
@@ -122,10 +126,10 @@ let noV2 = false;
  * 바뀐 게 없으면 데이터를 내려받지 않습니다. prevHash는 지난번에 받은 해시(없으면 '').
  * 바뀌지 않았으면 null, 바뀌었으면 새 데이터와 해시를 돌려줍니다.
  */
-export async function fetchTeamIfChanged(code: string, myId: string, prevHash: string): Promise<{ hash: string; data: { members: Member[]; polls: Poll[]; meStillThere: boolean; kind?: 'team' | 'meet' } } | null> {
+export async function fetchTeamIfChanged(code: string, myId: string, prevHash: string): Promise<{ hash: string; data: { members: Member[]; polls: Poll[]; meStillThere: boolean; kind?: 'team' | 'meet'; pair?: boolean } } | null> {
   if (!noV2) {
     try {
-      const r = (await rpc('fetch_team_v2', { p_code: code, p_hash: prevHash })) as { same: boolean; hash: string; data?: { kind?: string; members: MemberRow[]; polls: PollRow[]; votes: VoteRow[] } };
+      const r = (await rpc('fetch_team_v2', { p_code: code, p_hash: prevHash })) as { same: boolean; hash: string; data?: { kind?: string; pair?: boolean; members: MemberRow[]; polls: PollRow[]; votes: VoteRow[] } };
       if (r.same) return null;
       return { hash: r.hash, data: mapTeam(r.data || { members: [], polls: [], votes: [] }, myId) };
     } catch (e) {

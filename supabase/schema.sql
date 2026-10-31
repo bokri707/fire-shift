@@ -9,6 +9,7 @@ create table if not exists public.teams (
   name text not null,
   base date,
   kind text not null default 'team' check (kind in ('team', 'meet')), -- team=근무 팀, meet=모임
+  pair boolean not null default false, -- 부부(가족) 소모임 표시
   created_at timestamptz default now()
 );
 
@@ -77,9 +78,15 @@ begin
   update teams set kind = p_kind where code = p_code;
 end $$;
 
+create or replace function public.set_team_pair(p_code text, p_pair boolean)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  update teams set pair = coalesce(p_pair, false) where code = p_code;
+end $$;
+
 create or replace function public.get_team(p_code text)
 returns json language sql stable security definer set search_path = public as $$
-  select row_to_json(t) from (select code, name, base, kind from teams where code = p_code) t;
+  select row_to_json(t) from (select code, name, base, kind, pair from teams where code = p_code) t;
 $$;
 
 create or replace function public.upsert_member(p_code text, p_id text, p_name text, p_team integer, p_anchor date, p_ex jsonb)
@@ -141,6 +148,7 @@ create or replace function public.fetch_team(p_code text)
 returns json language sql stable security definer set search_path = public as $$
   select json_build_object(
     'kind', (select t.kind from teams t where t.code = p_code),
+    'pair', (select t.pair from teams t where t.code = p_code),
     'members', coalesce((select json_agg(json_build_object('id', m.id, 'name', m.name, 'team', m.team, 'ex', m.ex) order by m.updated_at)
                          from members m where m.team_code = p_code), '[]'::json),
     'polls', coalesce((select json_agg(json_build_object('id', p.id, 'title', p.title, 'dates', p.dates, 'final', p.final, 'created_at', p.created_at) order by p.created_at desc)

@@ -46,6 +46,8 @@ export interface CloudInfo {
   nick?: string;
   /** 소모임 종류(이 폰에서만 적용). team=근무 팀(연가 한도·보강 계산 포함), meet=모임(일정·투표만). 없으면 team */
   kind?: 'team' | 'meet';
+  /** 부부(가족) 소모임 표시. 서버에 저장되어 같은 소모임의 모두에게 적용됩니다. */
+  pair?: boolean;
 }
 
 /** 내가 들어가 있는 소모임 하나의 캐시 (지금 보고 있지 않은 소모임) */
