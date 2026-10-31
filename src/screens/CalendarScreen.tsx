@@ -167,7 +167,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
             onChange={(v) => { setType(v); setErr(''); }}
           />
           <SegRow<DraftType>
-            options={[{ v: 'swap', label: '맞교대' }, { v: 'cover', label: '보강' }, { v: 'careIn', label: '육아(출근)' }, { v: 'careOut', label: '육아(퇴근)' }, { v: 'careBoth', label: '육아(둘 다)' }]}
+            options={[{ v: 'swap', label: '맞교대' }, { v: 'cover', label: '보강' }, { v: 'careIn', label: '육아\n(출근)' }, { v: 'careOut', label: '육아\n(퇴근)' }, { v: 'careBoth', label: '육아\n(둘 다)' }]}
             value={type}
             onChange={(v) => { setType(v); setErr(''); }}
           />

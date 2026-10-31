@@ -59,12 +59,12 @@ export function SegRow<T extends string | number>(props: {
             disabled={props.disabled}
             onPress={() => props.onChange(o.v)}
             style={{
-              flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8, borderWidth: 1,
+              flex: 1, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1,
               borderColor: on ? t.accent : t.line, backgroundColor: on ? t.accent : t.surface,
               opacity: props.disabled ? 0.5 : 1,
             }}
           >
-            <Text style={{ color: on ? t.onAccent : t.ink, fontWeight: '500', fontSize: 14 }}>{o.label}</Text>
+            <Text style={{ color: on ? t.onAccent : t.ink, fontWeight: '500', fontSize: 14, textAlign: 'center' }}>{o.label}</Text>
           </Pressable>
         );
       })}
