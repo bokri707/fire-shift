@@ -23,16 +23,14 @@ export default function TeamScreen({ kind }: { kind: GroupKind }): React.ReactEl
   const k = cur ? cur.code : 'local';
   // 팀 탭은 소모임 없이 혼자 써 보는 입력도 보여 줍니다.
   const showBody = !!cur || (!isMeet && !state.cloud);
-  const [sub, setSub] = useState<Sub>(isMeet ? 'leave' : 'team');
+  const [sub, setSub] = useState<Sub>('leave');
   // 화면을 숨길 뿐 없애지 않아서, 메뉴를 오가도 입력 중이던 내용이 유지됩니다.
   const show = (v: Sub): { display: 'flex' | 'none'; gap: number } => ({ display: sub === v ? 'flex' : 'none', gap: 14 });
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 14 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <CloudCard kind={kind} />
       {showBody ? <SegRow<Sub>
-        options={isMeet
-          ? [{ v: 'leave', label: '모임 일정' }, { v: 'team', label: '멤버 근무' }, { v: 'meet', label: '모임·투표' }]
-          : [{ v: 'team', label: '우리 팀' }, { v: 'leave', label: '연가계획표' }, { v: 'meet', label: '모임·투표' }]}
+        options={[{ v: 'leave', label: isMeet ? '모임 일정' : '연가계획표' }, { v: 'team', label: isMeet ? '멤버 근무' : '우리 팀' }, { v: 'meet', label: '모임·투표' }]}
         value={sub}
         onChange={setSub}
       /> : null}
