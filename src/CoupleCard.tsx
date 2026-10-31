@@ -12,6 +12,8 @@ import { kindColors, useTheme } from './theme';
 import { Btn, Card, H2, Hint } from './ui';
 
 const PARTNER = '#2A3F6B';
+/** 오늘 날짜 표시색 (선택 테두리와 구분) */
+const TODAY = '#F59E0B';
 /** 연가(병가 포함)를 한꺼번에 갈 수 있는 한도: 총 인원의 3분의 1. 이를 넘으면 보강근무가 필요합니다. */
 const LEAVE_DIV = 3;
 const SIZE_KEY = 'fire-shift-teamsize-v1';
@@ -240,8 +242,8 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner }: { all:
     const bg = partner ? t.surface : !plan ? t.surface : isOver ? t.duty : full ? '#FFE9A8' : L > 0 ? '#DCEFE6' : N > 0 ? '#EEF1F4' : t.surface;
     const fg = isOver ? '#fff' : full ? '#7A5300' : t.leave;
     cells.push(
-      <Pressable key={s} onPress={() => setSel(s)} style={{ flex: 1, minHeight: 80, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s || noCare ? 2 : 1, borderColor: sel === s ? t.accent : noCare ? t.bad : isToday ? t.ink : t.line, backgroundColor: bg }}>
-        <Text style={{ fontSize: 12, fontWeight: '700', color: isOver ? '#fff' : hn || wd === 0 || wd === 6 ? t.sun : t.ink, paddingLeft: 2 }}>{d}</Text>
+      <Pressable key={s} onPress={() => setSel(s)} style={{ flex: 1, minHeight: 80, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s || noCare ? 2 : 1, borderColor: sel === s ? t.accent : noCare ? t.bad : isToday ? TODAY : t.line, backgroundColor: bg }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: isToday ? '#1B1B1B' : isOver ? '#fff' : hn || wd === 0 || wd === 6 ? t.sun : t.ink, paddingLeft: 2, ...(isToday ? { backgroundColor: TODAY, alignSelf: 'flex-start', borderRadius: 5, paddingHorizontal: 4, overflow: 'hidden' } : {}) }}>{d}</Text>
         {hn ? <Text numberOfLines={1} style={{ fontSize: 9, fontWeight: '700', color: isOver ? '#fff' : t.sun, paddingLeft: 2 }}>{hn}</Text> : null}
         {partner || !plan ? (
           <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>

@@ -11,6 +11,8 @@ import { Btn, Card } from './ui';
 
 const GAP = 4;
 /** 육아시간 점: 내 것은 주황, 배우자 것은 파랑 (왼쪽은 출근 때, 오른쪽은 퇴근 때) */
+/** 오늘 날짜 표시색: 선택·모임 테두리(남색·주황)와 겹치지 않는 노란색 */
+const TODAY = '#F59E0B';
 const CARE_MINE = '#E67E22';
 const CARE_SPOUSE = '#1E88E5';
 
@@ -114,8 +116,8 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
     const dotsR = [careR ? CARE_MINE : '', spR ? CARE_SPOUSE : ''].filter(Boolean);
     if (dotsL.length || dotsR.length) careAny = true;
     const sol = deco && deco.solid ? deco.solid : '';
-    const numColor = isToday ? t.surface : sol ? '#FFFFFF' : hn || wk === 0 ? t.sun : wk === 6 ? t.sun : t.ink;
-    const borderColor = isToday ? t.ink : sol ? sol : deco && deco.border ? deco.border : mt ? t.meet : hn ? t.hol : t.line;
+    const numColor = isToday ? '#1B1B1B' : sol ? '#FFFFFF' : hn || wk === 0 ? t.sun : wk === 6 ? t.sun : t.ink;
+    const borderColor = isToday ? TODAY : sol ? sol : deco && deco.border ? deco.border : mt ? t.meet : hn ? t.hol : t.line;
     const borderWidth = isToday ? 2.5 : deco && deco.border ? 3 : mt ? 3 : hn ? 2 : 1;
     cells.push(
       <Pressable
@@ -129,7 +131,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
           backgroundColor: sol || (deco && deco.bg ? deco.bg : 'transparent'),
         }}
       >
-        <View style={{ alignSelf: 'flex-start', marginLeft: 1, minWidth: 20, paddingHorizontal: 4, borderRadius: 5, backgroundColor: isToday ? t.ink : 'transparent' }}>
+        <View style={{ alignSelf: 'flex-start', marginLeft: 1, minWidth: 20, paddingHorizontal: 4, borderRadius: 5, backgroundColor: isToday ? TODAY : 'transparent' }}>
           <Text style={{ color: numColor, fontSize: 12, fontWeight: '700', lineHeight: 18, textAlign: 'center' }}>{d}</Text>
         </View>
         {hn ? <Text style={{ color: sol ? '#FFFFFF' : t.sun, fontSize: 9, fontWeight: '700', lineHeight: 11, textAlign: 'center' }}>{hn}</Text> : null}

@@ -6,10 +6,10 @@ import { WD, fromIdx, idx, parse, wdOf } from '../lib/date';
 import { downloadIcs, dutyIcs } from '../lib/ics';
 import { holName } from '../lib/holidays';
 import { groupEvents } from '../lib/events';
-import { LBL, OFF_LABELS, WORK_LABELS, allMeets, dutyTeam, eff, hasManyGroups, isThree, ledger, posOf } from '../lib/shift';
+import { LBL, OFF_LABELS, WORK_LABELS, allMeets, dutyTeam, eff, hasManyGroups, isThree, ledger, mEff, posOf } from '../lib/shift';
 import MonthCalendar from '../MonthCalendar';
 import SetupCard from '../SetupCard';
-import { useStore } from '../store';
+import { spouseOf, useStore } from '../store';
 import { useTheme } from '../theme';
 import { Btn, Card, Chip, H2, Hint, Pill, SegRow } from '../ui';
 
@@ -119,6 +119,11 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
   const three = isThree(state.pattern);
   const [mlabel, setMlabel] = useState<string>(state.manual[date] || '휴');
   const hn = holName(date);
+  const dayEv = groupEvents(state)[date] || [];
+  const dayMeets = allMeets(state).filter((m) => m.final === date);
+  const sp = spouseOf(state);
+  const spCare = sp ? mEff(sp, date).care : '';
+  const spText = spCare === 'in' ? '출근 때' : spCare === 'out' ? '퇴근 때' : spCare === 'both' ? '출근·퇴근 모두' : '';
   const names = Array.from(new Set(Object.keys(state.ex).map((k) => state.ex[k]).filter((x) => x.type === 'swap' && x.who.trim()).map((x) => x.who.trim())));
 
   const save = (): void => {
@@ -152,6 +157,29 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
               </View>
             ) : null}
           </View>
+          {dayEv.length || dayMeets.length || spText ? (
+            <View style={{ gap: 6, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: t.line }}>
+              <Text style={{ color: t.ink2, fontSize: 12 }}>이 날 일정</Text>
+              {dayEv.map((x, i) => (
+                <View key={'e' + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: x.color }} />
+                  <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}>{x.group ? x.group + ' · ' : ''}{x.name}</Text>
+                </View>
+              ))}
+              {dayMeets.map((m) => (
+                <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: t.meet }} />
+                  <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}><Text style={{ fontWeight: '700', color: t.meet }}>모임 </Text>{m.group ? m.group + ' · ' : ''}{m.title}</Text>
+                </View>
+              ))}
+              {spText ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#1E88E5' }} />
+                  <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}>{sp ? sp.name : '배우자'} 육아시간({spText})</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
           {three ? <Hint>이 날 당직은 {dutyTeam(state, date)}팀입니다. ({posOf(state.anchor, date) === 0 ? '내 당직일' : '내 비번 ' + posOf(state.anchor, date) + '일차'})</Hint> : null}
           {state.pattern.t === 'manual' ? (
             <View style={{ gap: 6 }}>
