@@ -60,11 +60,15 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
   // 좌우로 밀면 달이 바뀝니다. (왼쪽으로 밀면 다음 달) 세로 스크롤과 날짜 누르기는 그대로 둡니다.
   const moveRef = useRef(move);
   moveRef.current = move;
+  // 비스듬하게 밀어도 넘어가도록 가로가 세로보다 크기만 하면 인정하고, 한 번 잡으면 세로 스크롤이 뺏지 못하게 합니다. 빠르게 튕겨도 넘어갑니다.
+  const sideMove = (g: { dx: number; dy: number }): boolean => Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy);
   const swipe = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onMoveShouldSetPanResponder: (_e, g) => sideMove(g),
+    onMoveShouldSetPanResponderCapture: (_e, g) => sideMove(g),
+    onPanResponderTerminationRequest: () => false,
     onPanResponderRelease: (_e, g) => {
-      if (g.dx <= -50) moveRef.current(1);
-      else if (g.dx >= 50) moveRef.current(-1);
+      if (g.dx <= -40 || (g.dx <= -20 && g.vx <= -0.4)) moveRef.current(1);
+      else if (g.dx >= 40 || (g.dx >= 20 && g.vx >= 0.4)) moveRef.current(-1);
     },
   }), []);
   const webTouch = (Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) as unknown as ViewStyle;
