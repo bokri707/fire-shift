@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Platform, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
+import { PRIVACY_URL, TERMS_URL } from '../config';
 import { applyBackup, makeBackup, readBackup } from '../lib/backup';
 import { useTheme } from '../theme';
 import { notifySupported } from '../lib/notify';
@@ -140,6 +141,12 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
         <Btn ghost label="백업에서 복원하기" onPress={doRestore} disabled={!paste.trim()} />
         {msg ? <Hint bad={bad}>{msg}</Hint> : null}
         <Btn ghost label={armed ? '한 번 더 눌러 전부 초기화' : '모든 기록 초기화'} onPress={reset} />
+      </Card>
+
+      <Card style={{ gap: 10 }}>
+        <H2>안내</H2>
+        <Btn ghost label="개인정보처리방침" onPress={() => { Linking.openURL(PRIVACY_URL).catch(() => undefined); }} />
+        <Btn ghost label="이용약관" onPress={() => { Linking.openURL(TERMS_URL).catch(() => undefined); }} />
       </Card>
     </ScrollView>
     </HelpScope>
