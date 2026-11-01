@@ -232,8 +232,9 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
   const body = (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <Btn small ghost label="‹" onPress={() => move(-1)} style={{ minWidth: 40 }} />
+        {!canList ? <Btn small ghost label="‹" onPress={() => move(-1)} style={{ minWidth: 40 }} /> : null}
         <Text style={{ flex: 1, color: t.ink, fontSize: 21, fontWeight: '600' }}>{view.y}년 {view.m}월</Text>
+        <Btn small ghost label="오늘" onPress={() => { const p = parse(today); setView({ y: p[0], m: p[1] }); }} />
         {canList ? (
           <Pressable
             accessibilityRole="button"
@@ -244,11 +245,10 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
             {[0, 1, 2].map((i) => <View key={i} style={{ width: 18, height: 2.5, borderRadius: 2, backgroundColor: listMode ? t.surface : t.ink }} />)}
           </Pressable>
         ) : null}
-        <Btn small ghost label="오늘" onPress={() => { const p = parse(today); setView({ y: p[0], m: p[1] }); }} />
-        <Btn small ghost label="›" onPress={() => move(1)} style={{ minWidth: 40 }} />
+        {!canList ? <Btn small ghost label="›" onPress={() => move(1)} style={{ minWidth: 40 }} /> : null}
       </View>
       {listMode && canList ? (
-        <View>
+        <View style={webTouch} {...swipe.panHandlers}>
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
             <Pressable onPress={() => setListAll(false)} style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: t.line, backgroundColor: !listAll ? t.ink : 'transparent' }}>
               <Text style={{ fontSize: 13, color: !listAll ? t.surface : t.ink }}>일정만</Text>

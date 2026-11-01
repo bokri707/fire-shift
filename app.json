@@ -17,6 +17,14 @@
           "resizeMode": "contain",
           "backgroundColor": "#1E4B6B"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "-keep class androidx.work.** { *; }\n-keep class androidx.room.** { *; }\n-keep class * extends androidx.room.RoomDatabase { *; }"
+          }
+        }
       ]
     ],
     "version": "1.0.0",
