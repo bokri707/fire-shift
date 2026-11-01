@@ -1,7 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { AppState as RNAppState, KeyboardAvoidingView, Platform, Pressable, StatusBar as RNStatusBar, Text, View } from 'react-native';
-import AdBanner from './src/AdBanner';
 import CalendarScreen from './src/screens/CalendarScreen';
 import CloudSync from './src/CloudSync';
 import DutyNotifier from './src/DutyNotifier';
@@ -102,7 +101,6 @@ function Shell(): React.ReactElement {
         <View style={{ flex: 1, display: cur === 'meet' ? 'flex' : 'none' }}><TeamScreen kind="meet" /></View>
         <View style={{ flex: 1, display: cur === 'set' ? 'flex' : 'none' }}><SettingsScreen onDone={() => go('cal')} /></View>
       </View>
-      <AdBanner />
     </KeyboardAvoidingView>
   );
 }
