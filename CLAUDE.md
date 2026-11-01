@@ -11,7 +11,7 @@
 - **누가 쓰는가:** 소방관 (앞으로 다른 교대근무 직종도 쓸 수 있게 확장)
 - **현재 단계:** 웹 배포 중 + 안드로이드 APK 테스트 중
 - **GitHub 저장소:** `bokri707/fire-shift`
-- **웹 주소:** https://fire-shift.qkrrhksdud1.workers.dev (예전 주소 https://fire-shift.netlify.app/ 도 아직 열리지만 Netlify는 더 쓰지 않음)
+- **웹 주소:** https://fire-shift.fire-shift-app.workers.dev (예전 주소 https://fire-shift.netlify.app/ 도 아직 열리지만 Netlify는 더 쓰지 않음)
 - **웹 배포:** GitHub 저장소를 Cloudflare Workers에 연결한 자동 배포 (Netlify는 크레딧 소진으로 옮김)
 - **서버:** Supabase
 - **안드로이드 앱:** Expo + EAS로 APK 빌드. 먼저 APK로 동료 테스트 후 구글 플레이로 전환 예정.

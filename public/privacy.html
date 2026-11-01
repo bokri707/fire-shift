@@ -1,0 +1,80 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>개인정보처리방침 - 소방 교대달력</title><style>body{font-family:-apple-system,"Malgun Gothic",sans-serif;line-height:1.7;max-width:760px;margin:0 auto;padding:20px 16px;color:#1b2733}h1{color:#1E4B6B}h2{margin-top:1.8em;border-bottom:1px solid #dde4ea;padding-bottom:4px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #cfd8e0;padding:6px 8px;text-align:left;font-size:14px}code{background:#eef2f6;padding:1px 4px;border-radius:3px}.note{color:#51606e;font-size:14px}</style></head><body>
+<h1>개인정보처리방침</h1>
+<p class="note">이 문서는 실제 앱 동작(코드·<code>supabase/schema.sql</code>)을 보고 썼습니다. 앱 기능이 바뀌면 같이 고치세요.</p>
+<p class="note">시행일: 2026-11-01</p>
+<p>"소방 교대달력"(이하 "앱")은 이용자의 개인정보를 꼭 필요한 만큼만 다룹니다.</p>
+<h2>1. 앱에서 다루는 정보</h2>
+<p>앱은 <strong>회원가입과 로그인이 없습니다.</strong> 이메일, 전화번호, 주소, 생년월일, 주민등록번호는 받지 않습니다.</p>
+<h3>가. 내 폰(또는 브라우저)에만 저장되는 정보</h3>
+<ul>
+<li>근무 형태, 기준일, 연가·교육·육아시간 등 개인 일정과 메모, 설정</li>
+<li>알림 시각 설정. 근무 전날 알림은 폰 안에서만 예약되며, <strong>알림을 위해 서버로 보내는 정보는 없습니다.</strong></li>
+<li>위 정보는 이용자가 앱을 지우거나 데이터를 삭제하면 함께 사라집니다.</li>
+</ul>
+<h3>나. 소모임을 쓸 때 서버에 저장되는 정보</h3>
+<p>소모임(팀, 모임, 부부 함께 보기)을 만들거나 가입하면 아래 정보가 서버(Supabase)에 저장됩니다.</p>
+<ul>
+<li>소모임 코드와 소모임 이름, 근무 기준일, 소모임 종류</li>
+<li>팀원 이름(이용자가 직접 입력한 이름 또는 별명), 팀 번호, 연가·교육·육아시간 등 일정 정보</li>
+<li>모임·투표 제목, 후보 날짜, 투표 결과</li>
+<li>소모임 코드를 아는 사람은 그 소모임의 위 정보를 볼 수 있습니다. <strong>이름은 실명이 아닌 별명을 써도 됩니다.</strong></li>
+</ul>
+<h3>다. 서버가 자동으로 남기는 정보</h3>
+<ul>
+<li><strong>사용 횟수 합계:</strong> 날짜별로 "앱 열기, 달력, 팀, 부부·육아, 설정" 탭 사용 횟수의 합계만 모읍니다. 누가 눌렀는지, 어떤 기기인지는 저장하지 않습니다.</li>
+<li><strong>소모임 코드 추측 방지 기록:</strong> 존재하지 않는 소모임 코드를 조회하면 접속 주소(IP)와 입력한 코드를 <strong>암호처럼 바꾼 값(해시)</strong>으로 남깁니다. 원래 주소와 코드는 저장하지 않으며, <strong>1시간 뒤 자동으로 지웁니다.</strong> 이 값은 무작위 대입 공격을 막는 데만 씁니다.</li>
+</ul>
+<h3>라. 광고(구글 AdMob)</h3>
+<ul>
+<li>앱 아래에 구글 AdMob 배너 광고가 표시됩니다.</li>
+<li>광고를 보여주고 부정 클릭을 막기 위해 구글이 기기의 <strong>광고 ID</strong>, 접속 주소(IP) 등을 처리할 수 있습니다. 앱은 <strong>맞춤 광고를 끄고</strong>(비개인화 광고) 광고 등급을 낮게(PG 이하) 요청합니다.</li>
+<li>자세한 내용은 구글 안내를 따릅니다: <a href="https://policies.google.com/technologies/ads">https://policies.google.com/technologies/ads</a></li>
+<li>폰 설정에서 광고 ID를 삭제하거나 맞춤 광고를 끌 수 있습니다. (안드로이드: 설정 → Google → 광고)</li>
+</ul>
+<h2>2. 이용 목적</h2>
+<ul>
+<li>근무표와 일정을 보여주고 알림을 드리기 위해</li>
+<li>소모임 안에서 근무·일정·투표를 함께 보기 위해</li>
+<li>앱이 얼마나 쓰이는지 파악해 개선하기 위해(합계 통계)</li>
+<li>무차별 대입 공격으로부터 소모임을 보호하기 위해</li>
+<li>광고를 표시하기 위해</li>
+</ul>
+<h2>3. 보관 기간과 삭제</h2>
+<ul>
+<li>내 폰에 저장된 정보: 앱을 지우거나 앱 데이터를 삭제할 때까지</li>
+<li>서버의 소모임 정보: 소모임을 지우면 팀원·투표 정보가 함께 지워집니다. 본인이 올린 팀원 정보는 앱에서 삭제할 수 있습니다. 앱에서 지울 수 없는 경우는 아래 문의처로 요청하세요.</li>
+<li>사용 횟수 합계: 개인을 알아볼 수 없는 숫자라 계속 보관합니다.</li>
+<li>코드 추측 방지 기록: 1시간 뒤 삭제</li>
+</ul>
+<h2>4. 개인정보 제3자 제공과 처리 위탁</h2>
+<ul>
+<li>이용자의 개인정보를 제3자에게 판매하거나 제공하지 않습니다.</li>
+<li>서비스 운영을 위해 아래 업체의 서비스를 씁니다.</li>
+</ul>
+<table><thead><tr><th>업체</th><th>하는 일</th><th>처리 항목</th></tr></thead><tbody>
+<tr><td>Supabase</td><td>서버·데이터 저장</td><td>3-나, 3-다 항목</td></tr>
+<tr><td>Cloudflare</td><td>웹 앱 배포·전달</td><td>웹 접속 시 접속 주소 등 통신 정보</td></tr>
+<tr><td>Google AdMob</td><td>광고 표시</td><td>1-라 항목</td></tr>
+<tr><td>Expo</td><td>앱 빌드·배포 도구</td><td>이용자 정보 처리 없음(개발 과정에서만 사용)</td></tr>
+</tbody></table>
+<ul>
+<li>위 업체의 서버는 해외에 있을 수 있습니다. 이 경우 해외로 전달되는 정보는 위 표의 처리 항목에 한하며, 서비스 제공과 운영 목적으로만 쓰입니다.</li>
+</ul>
+<h2>5. 이용자의 권리</h2>
+<p>이용자는 언제든지 자신의 정보를 보거나, 고치거나, 지워 달라고 요청할 수 있습니다. 앱에서 직접 할 수 없는 것은 아래 문의처로 연락해 주세요.</p>
+<h2>6. 안전을 위한 조치</h2>
+<ul>
+<li>서버의 모든 표에 행 단위 보안(RLS)을 켜서 직접 접근을 막고, 정해진 함수로만 접근하게 했습니다.</li>
+<li>소모임 코드를 무작위로 대입해 알아내려는 시도는 접속 주소 기준으로 제한합니다.</li>
+<li><strong>소모임 코드는 사실상 비밀번호입니다.</strong> 모르는 사람에게 알려 주지 마세요.</li>
+</ul>
+<h2>7. 아동</h2>
+<p>만 14세 미만 아동을 대상으로 하지 않으며, 아동의 정보를 일부러 수집하지 않습니다.</p>
+<h2>8. 문의처</h2>
+<ul>
+<li>담당: 매슬로우</li>
+<li>이메일: eosqaws1@gmail.com</li>
+</ul>
+<h2>9. 방침의 변경</h2>
+<p>방침이 바뀌면 앱 또는 이 페이지에 시행일과 함께 알립니다.</p>
+</body></html>
