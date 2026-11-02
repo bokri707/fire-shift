@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   KeyboardAvoidingView, LayoutChangeEvent, Modal, Platform, Pressable, ScrollView, Text, TextInput, View,
 } from 'react-native';
+import { EXTRA_LEAVE, ExtraType, isExtra } from '../lib/leave';
 import { WD, fromIdx, idx, parse, wdOf } from '../lib/date';
 import { downloadIcs, dutyIcs } from '../lib/ics';
 import { holName } from '../lib/holidays';
@@ -105,7 +106,7 @@ export default function CalendarScreen(): React.ReactElement {
   );
 }
 
-type DraftType = 'none' | 'leave' | 'edu' | 'dispatch' | 'etc' | 'swap' | 'cover' | 'careIn' | 'careOut' | 'careBoth';
+type DraftType = ExtraType | 'none' | 'leave' | 'edu' | 'dispatch' | 'etc' | 'swap' | 'cover' | 'careIn' | 'careOut' | 'careBoth';
 
 function EditorModal({ date, onClose }: { date: string; onClose: () => void }): React.ReactElement {
   const t = useTheme();
@@ -270,6 +271,13 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
             value={type}
             onChange={(v) => { setType(v); setErr(''); }}
           />
+          <Text style={{ color: t.ink2, fontSize: 12 }}>휴가·휴무 종류 더보기</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {(Object.keys(EXTRA_LEAVE) as ExtraType[]).map((k) => (
+              <Chip key={k} label={EXTRA_LEAVE[k].name} on={type === k} onPress={() => { setType(k); setErr(''); }} />
+            ))}
+          </View>
+          {isExtra(type) ? <Hint keep>이 날은 근무에서 빠지는 날로 표시됩니다. 같은 소모임 팀원에게는 "기타"로 보이고 연가계획표의 빠지는 인원에 들어갑니다.</Hint> : null}
           {type === 'dispatch' || type === 'etc' ? <Hint>이 날은 근무에서 빠지는 날로 표시됩니다. (교육과 같은 방식) 같은 소모임 팀원의 "연가계획표"에서 빠지는 인원으로 계산됩니다.</Hint> : null}
           {type === 'cover' ? <Hint>쉬는 날 나와서 근무하는 보강근무입니다. 근무하는 날로 표시되고, 맞교대 장부에는 들어가지 않습니다.</Hint> : null}
           {type === 'careIn' || type === 'careOut' || type === 'careBoth' ? <Hint>근무는 그대로이고, 육아시간을 쓴 날로 표시됩니다. {type === 'careIn' ? '출근할 때 쓰면 당 앞에 육이 붙습니다.' : type === 'careOut' ? '퇴근할 때 쓰면 당 뒤에 육이 붙습니다.' : '출근과 퇴근 모두 쓰면 당 앞뒤로 육이 붙습니다.'} 같은 소모임에 들어 있는 배우자에게도 보입니다.</Hint> : null}
