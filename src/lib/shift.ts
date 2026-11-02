@@ -1,4 +1,4 @@
-import { EXTRA_LEAVE, isExtra } from './leave';
+import { EXTRA_LEAVE, PART_TYPES, isExtra, wireEx } from './leave';
 import { AppState, Ex, Kind, Pattern, Poll } from '../types';
 import { fromIdx, idx, wdOf } from './date';
 import { isEventPoll } from './events';
@@ -70,7 +70,7 @@ export function eff(st: AppState, s: string): Eff {
     if (e.type === 'leave') { r.kind = 'leave'; r.label = '연가'; r.works = false; }
     else if (e.type === 'edu' || e.type === 'dispatch' || e.type === 'etc') { r.kind = 'edu'; r.label = e.type === 'edu' ? '교육' : e.type === 'dispatch' ? '출장' : '기타'; r.works = false; }
     else if (e.type === 'hourly') { r.sub = (e.hkind || '연가') + (e.hrs || 1); }
-    else if (e.type === 'official' && e.part && e.part !== '전일') { r.sub = e.part === '주간' ? '공가(주)' : '공가(야)'; }
+    else if (PART_TYPES.indexOf(e.type) >= 0 && isExtra(e.type) && e.part && e.part !== '전일') { r.sub = EXTRA_LEAVE[e.type].chip + (e.part === '주간' ? '(주)' : '(야)'); }
     else if (isExtra(e.type)) { const x = EXTRA_LEAVE[e.type]; r.kind = x.kind; r.label = x.chip; r.sub = x.sub; r.works = false; }
     else if (e.type === 'careIn') { r.sub = '육아시간(출근 때)'; }
     else if (e.type === 'careBoth') { r.sub = '육아시간(출근·퇴근 모두)'; }
@@ -130,7 +130,7 @@ export function manualFromEx(ex: Record<string, string>): Record<string, string>
 
 export function roster(st: AppState): Person[] {
   const meEx: Record<string, string> = {};
-  Object.keys(st.ex).forEach((k) => { meEx[k] = st.ex[k].type; });
+  Object.keys(st.ex).forEach((k) => { const w = wireEx(st.ex[k]); if (w) meEx[k] = w; });
   const list: Person[] = [{ id: 'me', name: (st.cloud && st.cloud.nick) || st.nick || '나', team: st.team, anchor: st.anchor, ex: meEx, isMe: true, pat: st.pattern, manual: st.manual }];
   st.members.forEach((m) => {
     const dp = m.ex && m.ex._p ? decPattern(m.ex._p) : null;
@@ -143,20 +143,23 @@ export function roster(st: AppState): Person[] {
   return list;
 }
 
-export interface MEff { pos: number; base: 'duty' | 'off'; kind: Kind; works: boolean; cover: boolean; l: string; label: string; post: boolean; why: '' | '연가' | '교육' | '출장' | '기타'; care: '' | 'in' | 'out' | 'both' }
+export interface MEff { pos: number; base: 'duty' | 'off'; kind: Kind; works: boolean; cover: boolean; l: string; label: string; post: boolean; why: string; part: '' | '주' | '야'; care: '' | 'in' | 'out' | 'both' }
 
 export function mEff(p: Person, s: string): MEff {
   const bd = baseDay(p.pat, p.anchor, p.manual, s);
   const prev = baseDay(p.pat, p.anchor, p.manual, fromIdx(idx(s) - 1));
   const base: 'duty' | 'off' = bd.w ? 'duty' : 'off';
-  const t = p.ex[s];
+  const raw = p.ex[s] || '';
+  const cut = raw.indexOf('@');
+  const t = cut >= 0 ? raw.slice(0, cut) : raw;
+  const part: '' | '주' | '야' = cut >= 0 && raw.slice(cut + 1) === '주' ? '주' : cut >= 0 && raw.slice(cut + 1) === '야' ? '야' : '';
   let kind: Kind = base;
   let works = bd.w;
   if (t === 'leave') { kind = 'leave'; works = false; }
   else if (t === 'edu' || t === 'dispatch' || t === 'etc') { kind = 'edu'; works = false; }
   else if (t === 'cover') { kind = 'swap'; works = true; }
   else if (t === 'swap') { kind = 'swap'; works = !bd.w; }
-  return { pos: bd.pos, base, kind, works, cover: t === 'cover', l: bd.l, label: longLabel(bd.l), post: prev.w, why: t === 'leave' ? '연가' : t === 'edu' ? '교육' : t === 'dispatch' ? '출장' : t === 'etc' ? '기타' : '', care: t === 'careBoth' ? 'both' : t === 'careIn' ? 'in' : t === 'careOut' || t === 'care' ? 'out' : '' };
+  return { pos: bd.pos, base, kind, works, cover: t === 'cover', l: bd.l, label: longLabel(bd.l), post: prev.w, why: t === 'leave' ? '연가' : t === 'edu' ? '교육' : t === 'dispatch' ? '출장' : t === 'etc' ? (part ? '기타(' + part + '간)' : '기타') : '', part, care: t === 'careBoth' ? 'both' : t === 'careIn' ? 'in' : t === 'careOut' || t === 'care' ? 'out' : '' };
 }
 
 /** 쉬는 날(근무도 교육도 아님)이면 true. 연가·비번은 가능으로 봅니다. */

@@ -162,7 +162,8 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
         if (mine && !state.cloud) {
           // 서버에 남아 있는 내 연가·교육·맞교대(종류만)를 되살립니다.
           Object.keys(mine.ex).forEach((k) => {
-            const ty = mine.ex[k];
+            const ty0 = mine.ex[k];
+            const ty = ty0.indexOf('@') > 0 ? ty0.slice(0, ty0.indexOf('@')) : ty0;
             if (!ex[k] && (ty === 'leave' || ty === 'edu' || ty === 'dispatch' || ty === 'etc' || ty === 'swap' || ty === 'cover' || ty === 'care' || ty === 'careIn' || ty === 'careOut' || ty === 'careBoth')) ex[k] = { type: ty, who: '', memo: '' };
           });
         }
@@ -433,7 +434,7 @@ function RosterMatrix({ ms, today, spouseId }: { ms: Person[]; today: string; sp
             {bars((s) => {
               const x = mEff(m, s);
               const c = kindColors(t, x.kind);
-              const txt = x.kind === 'duty' || x.kind === 'off' ? x.l : x.kind === 'edu' ? x.why.slice(0, 1) : LBL[x.kind].slice(0, 1);
+              const txt = x.kind === 'duty' || x.kind === 'off' ? x.l : x.kind === 'edu' ? (x.part ? x.part : x.why.slice(0, 1)) : LBL[x.kind].slice(0, 1);
               return (
                 <>
                   <View style={{ width: '100%', height: 22, borderRadius: mode === 'week' ? 5 : 4, backgroundColor: x.kind === 'duty' ? t.duty : c.bg, borderWidth: 1, borderColor: c.fg, alignItems: 'center', justifyContent: 'center' }}>

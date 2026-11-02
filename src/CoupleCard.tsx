@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, Pressable, Text, TextInput, View, ViewStyle } from 'react-native';
 import { holName } from './lib/holidays';
@@ -14,9 +13,6 @@ import { Btn, Card, H2, Help, Hint } from './ui';
 const PARTNER = '#2A3F6B';
 /** 오늘 날짜 표시색 (선택 테두리와 구분) */
 const TODAY = '#F59E0B';
-/** 연가(병가 포함)를 한꺼번에 갈 수 있는 한도: 총 인원의 3분의 1. 이를 넘으면 보강근무가 필요합니다. */
-const LEAVE_DIV = 3;
-const SIZE_KEY = 'fire-shift-teamsize-v1';
 /** 육아시간 색: 내 것은 항상 주황, 배우자 것은 항상 파랑. 그 밖의 사람은 아래 색을 이름순으로 씁니다. */
 export const CARE_MINE = '#E67E22';
 export const CARE_SPOUSE = '#1E88E5';
@@ -52,7 +48,7 @@ function Mark({ e, color }: { e: MEff; color: string }): React.ReactElement {
   const t = useTheme();
   const c = kindColors(t, e.kind);
   const duty = e.kind === 'duty';
-  const txt = e.kind === 'swap' ? (e.works ? (e.cover ? '보' : '맞') : '') : e.kind === 'leave' ? '연' : e.kind === 'edu' ? e.why.slice(0, 1) : duty ? '당' : '';
+  const txt = e.kind === 'swap' ? (e.works ? (e.cover ? '보' : '맞') : '') : e.kind === 'leave' ? '연' : e.kind === 'edu' ? (e.part ? e.part : e.why.slice(0, 1)) : duty ? '당' : '';
   return (
     <View style={{ height: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 12, backgroundColor: duty ? color : 'transparent', borderWidth: !duty && txt ? 1.5 : 0, borderColor: !duty && txt ? c.fg : 'transparent' }}>
       {e.care === 'in' || e.care === 'both' ? <CareBadge /> : null}
@@ -129,26 +125,8 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
   const teamNos = Array.from(new Set(all.map((x) => x.team))).sort((a, b) => a - b);
   const [tm, setTm] = useState<number>(meP.team);
   const [sel, setSel] = useState<string>('');
-  const [sizes, setSizes] = useState<Record<string, number>>({});
-  useEffect(() => {
-    let alive = true;
-    AsyncStorage.getItem(SIZE_KEY).then((raw) => {
-      if (!alive || !raw) return;
-      try { const p = JSON.parse(raw) as Record<string, number>; if (p && typeof p === 'object') setSizes(p); } catch (e) { /* 저장값이 깨졌으면 무시 */ }
-    }).catch(() => undefined);
-    return () => { alive = false; };
-  }, []);
 
   const team = all.filter((x) => x.team === tm);
-  const key = code + ':' + tm;
-  const size = Math.max(sizes[key] || team.length, 1);
-  const limit = Math.floor(size / LEAVE_DIV);
-  const setSize = (v: number): void => {
-    const nv = Math.min(Math.max(v, 1), 60);
-    const next = { ...sizes, [key]: nv };
-    setSizes(next);
-    AsyncStorage.setItem(SIZE_KEY, JSON.stringify(next)).catch(() => undefined);
-  };
 
   const addEvent = (): void => {
     if (!sel) return;
@@ -228,7 +206,6 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
   const first = firstWd(y, m);
   const n = daysInMonth(y, m);
   const cells: React.ReactElement[] = [];
-  let over = 0;
   for (let i = 0; i < first; i++) cells.push(<View key={'b' + i} style={{ flex: 1 }} />);
   for (let d = 1; d <= n; d++) {
     const s = iso(y, m, d);
@@ -236,18 +213,15 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
     const cr = careOf(s);
     const isToday = s === today;
     const wd = (first + d - 1) % 7;
-    const isOver = plan && L > limit;
-    const full = plan && !isOver && L > 0 && L === limit;
     const hn = holName(s);
-    if (isOver) over++;
     const pb = partner ? mEff(partner, s) : null;
     const noCare = !!(partner && !mFree(meP, s, false) && !mFree(partner, s, false));
-    const bg = partner ? t.surface : !plan ? t.surface : isOver ? t.duty : full ? '#FFE9A8' : L > 0 ? '#DCEFE6' : N > 0 ? '#EEF1F4' : t.surface;
-    const fg = isOver ? '#fff' : full ? '#7A5300' : t.leave;
+    const bg = partner ? t.surface : !plan ? t.surface : L > 0 ? '#DCEFE6' : N > 0 ? '#EEF1F4' : t.surface;
+    const fg = t.leave;
     cells.push(
       <Pressable key={s} onPress={() => setSel(s)} style={{ flex: 1, minHeight: 80, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s || noCare ? 2 : 1, borderColor: sel === s ? t.accent : noCare ? t.bad : isToday ? TODAY : t.line, backgroundColor: bg }}>
-        <Text style={{ fontSize: 12, fontWeight: '700', color: isToday ? '#1B1B1B' : isOver ? '#fff' : hn || wd === 0 || wd === 6 ? t.sun : t.ink, paddingLeft: 2, ...(isToday ? { backgroundColor: TODAY, alignSelf: 'flex-start', borderRadius: 5, paddingHorizontal: 4, overflow: 'hidden' } : {}) }}>{d}</Text>
-        {hn ? <Text numberOfLines={1} style={{ fontSize: 9, fontWeight: '700', color: isOver ? '#fff' : t.sun, paddingLeft: 2 }}>{hn}</Text> : null}
+        <Text style={{ fontSize: 12, fontWeight: '700', color: isToday ? '#1B1B1B' : hn || wd === 0 || wd === 6 ? t.sun : t.ink, paddingLeft: 2, ...(isToday ? { backgroundColor: TODAY, alignSelf: 'flex-start', borderRadius: 5, paddingHorizontal: 4, overflow: 'hidden' } : {}) }}>{d}</Text>
+        {hn ? <Text numberOfLines={1} style={{ fontSize: 9, fontWeight: '700', color: t.sun, paddingLeft: 2 }}>{hn}</Text> : null}
         {partner || !plan ? (
           <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>
             {visible(mEff(meP, s)) ? <Mark e={mEff(meP, s)} color={t.duty} /> : null}
@@ -255,8 +229,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
           </View>
         ) : null}
         <View style={{ flex: partner || !plan ? 0 : 1, alignItems: 'center', justifyContent: 'center' }}>
-          {plan && L > 0 ? <Text style={{ fontSize: 14, fontWeight: '800', color: fg }}>{L}/{limit}</Text> : null}
-          {plan && isOver ? <Text style={{ fontSize: 10, fontWeight: '800', color: '#fff' }}>보강</Text> : null}
+          {plan && L > 0 ? <Text style={{ fontSize: 14, fontWeight: '800', color: fg }}>{L}</Text> : null}
         </View>
         {ev[s] ? (
           <View style={{ flexDirection: 'row', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -278,16 +251,9 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
   return (
     <>
       {plan && teamNos.length > 1 ? <Chips items={teamNos.map((x) => ({ id: String(x), label: x + '팀' }))} value={String(tm)} onPick={(id) => { setTm(Number(id)); setSel(''); }} /> : null}
-      {plan ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}>{tm}팀 총 인원 <Text style={{ fontWeight: '800' }}>{size}명</Text> · 빠질 수 있는 한도 <Text style={{ fontWeight: '800', color: t.duty }}>{limit}명</Text></Text>
-        <Btn small ghost label="−" onPress={() => setSize(size - 1)} style={{ minWidth: 40 }} />
-        <Btn small ghost label="+" onPress={() => setSize(size + 1)} style={{ minWidth: 40 }} />
-      </View> : null}
       {plan ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <Dot color="#EEF1F4" label="팀 근무일" square />
-        <Dot color="#DCEFE6" label="빠짐 (한도 안)" square />
-        <Dot color="#FFE9A8" label="한도 도달" square />
-        <Dot color={t.duty} label="한도 초과 · 보강" square />
+        <Dot color="#DCEFE6" label="빠짐 (숫자=빠지는 인원)" square />
       </View> : null}
       {partner ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -350,11 +316,6 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
               </View>
             );
           })()}
-          {si.N > 0 ? (
-            <Text style={{ color: si.L > limit ? t.duty : t.ink, fontSize: 13, fontWeight: '700' }}>
-              {si.L > limit ? '한도 ' + limit + '명 초과 — 보강근무가 필요합니다' : si.L === limit ? '한도 ' + limit + '명에 도달 — 더 빠지면 보강근무가 필요합니다' : '앞으로 ' + (limit - si.L) + '명 더 빠질 수 있습니다'}
-            </Text>
-          ) : null}
         </View>
       ) : <Help><Text style={{ color: t.ink2, fontSize: 13 }}>{plan ? '날짜를 누르면 그날 빠지는 사람과 남은 인원이 나오고, 팀 일정(직장교육·회식 등)도 올릴 수 있습니다.' : '날짜를 누르면 그날 일정을 보고 올릴 수 있습니다.'}</Text></Help>}
       {sel ? (
@@ -404,8 +365,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
           </View>
         </View>
       ) : null}
-      {plan ? <Text style={{ color: t.ink, fontSize: 13 }}>이 달 한도 초과(보강 필요) <Text style={{ fontWeight: '700', color: t.duty }}>{over}일</Text></Text> : null}
-      {plan ? <Hint>칸의 숫자는 "빠지는 인원 / 한도 인원"입니다. 연가·병가·교육·출장·기타로 근무에서 빠지는 사람을 모두 셉니다. 한도는 총 인원의 3분의 1(소수점은 버림)로 계산합니다. 소모임에 들어와 달력에 기록한 사람만 셀 수 있으니, 팀 총 인원은 실제 인원에 맞춰 + − 로 고쳐 주세요. 팀원끼리 계획을 미리 입력해 서로 보면서 조율하는 용도입니다.</Hint> : <Hint>{partner ? '붉은색은 나, 남색은 ' + partner.name + '입니다. 한 칸에 위(나)·아래(상대)로 나옵니다. 빨간 테두리는 두 사람 모두 당직·교육·출장·기타로 근무가 겹치는 날입니다. 칸의 육은 육아시간이고, 당 앞은 출근 때, 당 뒤는 퇴근 때입니다. 일정은 소모임 모두에게 보입니다. ' : '모임 일정은 같은 소모임에 들어온 사람 모두에게 보입니다. '}모임 날짜를 투표로 정하려면 "모임·투표"를 쓰세요.</Hint>}
+      {plan ? <Hint>칸의 숫자는 그날 빠지는 사람 수입니다. 연가·병가·교육·출장·기타로 근무에서 빠지는 사람을 모두 세며, 주간·야간만 빠지는 경우도 포함합니다. 날짜를 누르면 이름과 주·야 구분이 나옵니다. 팀원끼리 계획을 미리 입력해 서로 보면서 조율하는 용도입니다.</Hint> : <Hint>{partner ? '붉은색은 나, 남색은 ' + partner.name + '입니다. 한 칸에 위(나)·아래(상대)로 나옵니다. 빨간 테두리는 두 사람 모두 당직·교육·출장·기타로 근무가 겹치는 날입니다. 칸의 육은 육아시간이고, 당 앞은 출근 때, 당 뒤는 퇴근 때입니다. 일정은 소모임 모두에게 보입니다. ' : '모임 일정은 같은 소모임에 들어온 사람 모두에게 보입니다. '}모임 날짜를 투표로 정하려면 "모임·투표"를 쓰세요.</Hint>}
     </>
   );
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   KeyboardAvoidingView, LayoutChangeEvent, Modal, Platform, Pressable, ScrollView, Text, TextInput, View,
 } from 'react-native';
-import { EXTRA_LEAVE, ExtraType, isExtra } from '../lib/leave';
+import { EXTRA_LEAVE, ExtraType, PART_TYPES, dayWeight, isExtra } from '../lib/leave';
 import { DEFAULT_LEAVE, fmtLeave, leaveUsage } from '../lib/leaveCalc';
 import { WD, fromIdx, idx, parse, wdOf } from '../lib/date';
 import { downloadIcs, dutyIcs } from '../lib/ics';
@@ -25,6 +25,7 @@ export default function CalendarScreen(): React.ReactElement {
   const [sel, setSel] = useState<string | null>(null);
   const [focus, setFocus] = useState<string | undefined>(undefined);
   const [showSetup, setShowSetup] = useState(false);
+  const [showRec, setShowRec] = useState(false);
 
   const rows = ledger(state);
   const meets = allMeets(state).filter((p) => p.final >= today).sort((a, b) => (a.final < b.final ? -1 : 1));
@@ -90,7 +91,12 @@ export default function CalendarScreen(): React.ReactElement {
       </Card>
 
       <Card style={{ gap: 10 }}>
-        <H2>{lyear}년 남은 연가</H2>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <H2>{lyear}년 남은 연가</H2>
+          <Pressable accessibilityLabel="내 휴가 기록 모아보기" onPress={() => setShowRec(!showRec)} hitSlop={10} style={{ padding: 6, gap: 4, borderRadius: 8, borderWidth: 1, borderColor: showRec ? t.accent : t.line }}>
+            {[0, 1, 2].map((i) => <View key={i} style={{ width: 18, height: 2, borderRadius: 1, backgroundColor: showRec ? t.accent : t.ink }} />)}
+          </Pressable>
+        </View>
         <Text style={{ color: lu.remainH < 0 ? t.sun : t.ink, fontSize: 28, fontWeight: '800' }}>{fmtLeave(lu.remainH)}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Text style={{ color: t.ink, fontSize: 14 }}>한 해 연가</Text>
@@ -117,6 +123,24 @@ export default function CalendarScreen(): React.ReactElement {
           <Text style={{ color: t.ink2, fontSize: 13 }}>가족돌봄 {lu.family} / 10일{lu.absent ? ' · 결근 ' + lu.absent + '회(연가 공제)' : ''}</Text>
           <Text style={{ color: t.ink2, fontSize: 13 }}>병가(진단서 없음) {lu.sickDays}일{lu.sickExcess ? ' → 6일 초과 ' + lu.sickExcess + '일을 연가에서 공제' : ' (연 6일까지는 공제 없음)'}</Text>
         </View>
+        {showRec ? (
+          <View style={{ gap: 2, paddingTop: 6, borderTopWidth: 1, borderTopColor: t.line }}>
+            <Text style={{ color: t.ink, fontSize: 14, fontWeight: '700' }}>올해 연가 사용 {fmtLeave(lu.usedH)} · 기록 {lu.records.length}건</Text>
+            <Text style={{ color: t.ink2, fontSize: 12 }}>빨간색은 연가에서 공제되는 휴가입니다. 누르면 그날 기록을 고칠 수 있습니다.</Text>
+            {lu.records.length === 0 ? <Text style={{ color: t.ink2, fontSize: 13, paddingTop: 6 }}>올해 기록된 휴가가 없습니다.</Text> : null}
+            {lu.records.map((r, i) => {
+              const pr = parse(r.date);
+              const red = r.deductH > 0;
+              return (
+                <Pressable key={r.date + i} onPress={() => setSel(r.date)} style={{ flexDirection: 'row', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: t.line }}>
+                  <Text style={{ width: 56, color: red ? t.sun : t.ink, fontSize: 13, fontWeight: '700' }}>{pr[1]}/{pr[2]}</Text>
+                  <Text style={{ flex: 1, color: red ? t.sun : t.ink, fontSize: 13 }}>{r.name}{r.detail ? ' · ' + r.detail : ''}{r.memo ? ' · ' + r.memo : ''}</Text>
+                  {red ? <Text style={{ color: t.sun, fontSize: 13, fontWeight: '700' }}>-{fmtLeave(r.deductH)}</Text> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
       </Card>
 
       {Platform.OS === 'web' ? (
@@ -143,14 +167,14 @@ export default function CalendarScreen(): React.ReactElement {
 type DraftType = ExtraType | 'hourly' | 'none' | 'leave' | 'edu' | 'dispatch' | 'etc' | 'swap' | 'cover' | 'careIn' | 'careOut' | 'careBoth';
 
 type Tab = 'base' | 'leave' | 'sick' | 'special' | 'official' | 'care' | 'edu' | 'trip' | 'etc';
-const TABS_A: { v: Tab; label: string }[] = [{ v: 'base', label: '기본' }, { v: 'leave', label: '연가' }, { v: 'sick', label: '병가' }, { v: 'special', label: '특별' }, { v: 'official', label: '공가' }];
+const TABS_A: { v: Tab; label: string }[] = [{ v: 'base', label: '기본' }, { v: 'leave', label: '연가' }, { v: 'sick', label: '병가' }, { v: 'special', label: '특가' }, { v: 'official', label: '공가' }];
 const TABS_B: { v: Tab; label: string }[] = [{ v: 'care', label: '육아' }, { v: 'edu', label: '교육' }, { v: 'trip', label: '출장' }, { v: 'etc', label: '기타' }];
 const TAB_DEFAULT: Record<Tab, DraftType> = { base: 'none', leave: 'leave', sick: 'sick', special: 'condol', official: 'official', care: 'careIn', edu: 'edu', trip: 'dispatch', etc: 'etc' };
 function tabOf(ty: DraftType): Tab {
   if (ty === 'swap' || ty === 'cover' || ty === 'none') return 'base';
   if (ty === 'leave' || ty === 'halfAm' || ty === 'halfPm' || ty === 'hourly') return 'leave';
   if (ty === 'sick' || ty === 'sickCert' || ty === 'sickWork') return 'sick';
-  if (ty === 'condol' || ty === 'family' || ty === 'dutyOff' || ty === 'subOff' || ty === 'turnOff') return 'special';
+  if (ty === 'condol' || ty === 'family' || ty === 'prize' || ty === 'dutyOff' || ty === 'subOff' || ty === 'turnOff') return 'special';
   if (ty === 'official') return 'official';
   if (ty === 'careIn' || ty === 'careOut' || ty === 'careBoth') return 'care';
   if (ty === 'edu') return 'edu';
@@ -170,10 +194,11 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
   const [hrs, setHrs] = useState(cur && cur.hrs ? cur.hrs : 1);
   const [full1, setFull1] = useState(cur && cur.full1 ? true : false);
   const [hkind, setHkind] = useState<'지각' | '외출' | '조퇴'>(cur && cur.hkind ? cur.hkind : '지각');
-  const [part, setPart] = useState<'주간' | '야간' | '전일'>(cur && cur.part ? cur.part : cur && cur.type === 'official' ? '전일' : '주간');
+  const [part, setPart] = useState<'주간' | '야간' | '전일'>(cur && cur.part ? cur.part : cur ? '전일' : type === 'official' ? '주간' : '전일');
   const [tab, setTab] = useState<Tab>(tabOf(type));
   const lu = leaveUsage(state, parse(date)[0]);
-  const pickTab = (v: Tab): void => { if (tabOf(type) !== v) setType(TAB_DEFAULT[v]); setTab(v); setErr(''); };
+  const pickTab = (v: Tab): void => { if (tabOf(type) !== v) { setType(TAB_DEFAULT[v]); if (!(cur && cur.part)) setPart(v === 'official' ? '주간' : '전일'); } setTab(v); setErr(''); };
+  const partOn = lu.is24 && PART_TYPES.indexOf(type) >= 0;
   const chip = (v: DraftType, label: string): React.ReactElement => <Chip key={v} label={label} on={type === v} onPress={() => { setType(v); setErr(''); }} />;
   const [err, setErr] = useState('');
   const three = isThree(state.pattern);
@@ -229,7 +254,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
     update((s) => {
       const ex = { ...s.ex };
       if (type === 'none') { if (memo.trim()) ex[date] = { type: 'memo', who: '', memo: memo.trim() }; else delete ex[date]; }
-      else ex[date] = { type, who: type === 'swap' ? who.trim() : '', memo: memo.trim(), ...(type === 'hourly' ? { hrs, hkind } : {}), ...(type === 'official' ? { part } : {}), ...(type === 'leave' && full1 ? { full1: true } : {}) };
+      else ex[date] = { type, who: type === 'swap' ? who.trim() : '', memo: memo.trim(), ...(type === 'hourly' ? { hrs, hkind } : {}), ...(PART_TYPES.indexOf(type) >= 0 ? (lu.is24 ? { part } : type === 'official' ? { part: '전일' as const } : {}) : {}), ...(type === 'leave' && full1 ? { full1: true } : {}) };
       const manual = { ...s.manual };
       if (s.pattern.t === 'manual') { if (mlabel === '휴') delete manual[date]; else manual[date] = mlabel; }
       return { ...s, ex, manual };
@@ -368,11 +393,11 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
           {tab === 'special' ? (
             <View style={{ gap: 10 }}>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                {chip('condol', '경조사')}{chip('family', '가족돌봄')}
+                {chip('condol', '경조사')}{chip('family', '가족돌봄')}{chip('prize', '포상휴가')}
               </View>
               {type === 'family' ? (
                 <Text style={{ color: t.ink, fontSize: 13, lineHeight: 19 }}>
-                  <Text style={{ fontWeight: '800' }}>올해 가족돌봄 {lu.family + (cur && cur.type === 'family' ? 0 : 1)} / 10일</Text>
+                  <Text style={{ fontWeight: '800' }}>올해 가족돌봄 {lu.family - (cur && cur.type === 'family' ? dayWeight(lu.is24, cur.part) : 0) + dayWeight(lu.is24, partOn ? part : '전일')} / 10일</Text>
                   {' '}(유급·무급을 합쳐 연 10일까지, 이 날 포함){'\n'}
                   <Text style={{ color: t.ink2 }}>무급이 원칙이고, 자녀를 돌볼 때는 "자녀 수 + 1"일까지 유급으로 쓸 수 있습니다. 장애인 자녀를 돌보거나 한부모이면 유급 1일이 더해집니다.</Text>
                 </Text>
@@ -384,11 +409,16 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
             </View>
           ) : null}
           {tab === 'official' ? (
-            <View style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {chip('official', '공가')}
+            </View>
+          ) : null}
+          {partOn ? (
+            <View style={{ gap: 6 }}>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {(['주간', '야간', '전일'] as const).map((k) => <Chip key={k} label={k} on={part === k} onPress={() => setPart(k)} />)}
               </View>
-              <Text style={{ color: t.ink2, fontSize: 12.5 }}>{part === '전일' ? '하루 종일 공가라서 이 날은 근무에서 빠집니다.' : '주간 또는 야간에만 쓰면 이 날 근무는 그대로입니다.'}</Text>
+              <Text style={{ color: t.ink2, fontSize: 12.5 }}>{part === '전일' ? '당직 전체(주간+야간)라서 이 날은 근무에서 빠지고 2일로 셉니다.' : '주간 또는 야간만 쓰면 1일로 세고, 쓴 쪽 근무자만 빠지는 인원에 들어갑니다.'}</Text>
             </View>
           ) : null}
           {tab === 'care' ? (
