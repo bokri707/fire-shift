@@ -70,6 +70,7 @@ export function eff(st: AppState, s: string): Eff {
     if (e.type === 'leave') { r.kind = 'leave'; r.label = '연가'; r.works = false; }
     else if (e.type === 'edu' || e.type === 'dispatch' || e.type === 'etc') { r.kind = 'edu'; r.label = e.type === 'edu' ? '교육' : e.type === 'dispatch' ? '출장' : '기타'; r.works = false; }
     else if (e.type === 'hourly') { r.sub = (e.hkind || '연가') + (e.hrs || 1); }
+    else if (e.type === 'official' && e.part && e.part !== '전일') { r.sub = e.part === '주간' ? '공가(주)' : '공가(야)'; }
     else if (isExtra(e.type)) { const x = EXTRA_LEAVE[e.type]; r.kind = x.kind; r.label = x.chip; r.sub = x.sub; r.works = false; }
     else if (e.type === 'careIn') { r.sub = '육아시간(출근 때)'; }
     else if (e.type === 'careBoth') { r.sub = '육아시간(출근·퇴근 모두)'; }

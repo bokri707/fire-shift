@@ -170,6 +170,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
   const [hrs, setHrs] = useState(cur && cur.hrs ? cur.hrs : 1);
   const [full1, setFull1] = useState(cur && cur.full1 ? true : false);
   const [hkind, setHkind] = useState<'지각' | '외출' | '조퇴'>(cur && cur.hkind ? cur.hkind : '지각');
+  const [part, setPart] = useState<'주간' | '야간' | '전일'>(cur && cur.part ? cur.part : cur && cur.type === 'official' ? '전일' : '주간');
   const [tab, setTab] = useState<Tab>(tabOf(type));
   const lu = leaveUsage(state, parse(date)[0]);
   const pickTab = (v: Tab): void => { if (tabOf(type) !== v) setType(TAB_DEFAULT[v]); setTab(v); setErr(''); };
@@ -228,7 +229,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
     update((s) => {
       const ex = { ...s.ex };
       if (type === 'none') { if (memo.trim()) ex[date] = { type: 'memo', who: '', memo: memo.trim() }; else delete ex[date]; }
-      else ex[date] = { type, who: type === 'swap' ? who.trim() : '', memo: memo.trim(), ...(type === 'hourly' ? { hrs, hkind } : {}), ...(type === 'leave' && full1 ? { full1: true } : {}) };
+      else ex[date] = { type, who: type === 'swap' ? who.trim() : '', memo: memo.trim(), ...(type === 'hourly' ? { hrs, hkind } : {}), ...(type === 'official' ? { part } : {}), ...(type === 'leave' && full1 ? { full1: true } : {}) };
       const manual = { ...s.manual };
       if (s.pattern.t === 'manual') { if (mlabel === '휴') delete manual[date]; else manual[date] = mlabel; }
       return { ...s, ex, manual };
@@ -382,7 +383,14 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
               </View>
             </View>
           ) : null}
-          {tab === 'official' ? <View style={{ flexDirection: 'row', gap: 6 }}>{chip('official', '공가')}</View> : null}
+          {tab === 'official' ? (
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {(['주간', '야간', '전일'] as const).map((k) => <Chip key={k} label={k} on={part === k} onPress={() => setPart(k)} />)}
+              </View>
+              <Text style={{ color: t.ink2, fontSize: 12.5 }}>{part === '전일' ? '하루 종일 공가라서 이 날은 근무에서 빠집니다.' : '주간 또는 야간에만 쓰면 이 날 근무는 그대로입니다.'}</Text>
+            </View>
+          ) : null}
           {tab === 'care' ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               {chip('careIn', '출근 때')}{chip('careOut', '퇴근 때')}{chip('careBoth', '둘 다')}
