@@ -161,7 +161,7 @@ export default function MonthCalendar({ onPressDate, decorate, focusDate, bare }
             <Text numberOfLines={1} style={{ color: t.onMeet, fontSize: 10.5, fontWeight: '700' }}>{mt.length > 1 ? mt[0].t.slice(0, 2) + '+' + (mt.length - 1) : mt[0].t.slice(0, 4)}</Text>
           </View>
         ) : (
-          <Text style={{ color: sol ? '#FFFFFF' : deco && deco.tagColor ? deco.tagColor : c.fg, fontSize: 10.5, fontWeight: deco && deco.tag ? '700' : '400', minHeight: 14 }}>
+          <Text numberOfLines={1} style={{ color: sol ? '#FFFFFF' : deco && deco.tagColor ? deco.tagColor : c.fg, fontSize: 10.5, fontWeight: deco && deco.tag ? '700' : '400', minHeight: 14 }}>
             {deco && deco.tag ? deco.tag : care ? '' : e.sub}
           </Text>
         )}

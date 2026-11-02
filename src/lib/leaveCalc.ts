@@ -13,6 +13,10 @@ export interface LeaveUsage {
   half: number;
   hourly: number;
   sickDays: number;
+  /** 가족돌봄휴가 사용일수 (연 10일 한도) */
+  family: number;
+  /** 결근 횟수 (연가에서 공제, 공제 일수는 확인 전이라 전일연가와 같게 셉니다) */
+  absent: number;
   sickExcess: number;
   usedH: number;
   totalH: number;
@@ -40,7 +44,7 @@ export function leaveUsage(st: AppState, year: number): LeaveUsage {
   const is24 = st.leave24 !== undefined ? st.leave24 : isThree(st.pattern);
   const fullH = is24 ? 16 : 8;
   const halfH = is24 ? 8 : 4;
-  let full = 0; let fullUsedH = 0; let half = 0; let hourly = 0; let sickDays = 0;
+  let full = 0; let fullUsedH = 0; let half = 0; let hourly = 0; let sickDays = 0; let family = 0; let absent = 0;
   const pre = year + '-';
   Object.keys(st.ex).forEach((k) => {
     if (k.indexOf(pre) !== 0) return;
@@ -49,10 +53,12 @@ export function leaveUsage(st: AppState, year: number): LeaveUsage {
     if (e.type === 'leave') { full++; fullUsedH += is24 && !e.full1 ? 16 : 8; }
     else if (e.type === 'halfAm' || e.type === 'halfPm') half++;
     else if (e.type === 'hourly') hourly += e.hrs || 1;
+    else if (e.type === 'family') family++;
+    else if (e.type === 'absent') absent++;
     else if (e.type === 'sick') sickDays += is24 ? 2 : 1;
   });
   const sickExcess = Math.max(0, sickDays - 6);
-  const usedH = fullUsedH + half * halfH + hourly + sickExcess * 8;
+  const usedH = fullUsedH + half * halfH + hourly + sickExcess * 8 + absent * fullH;
   const totalH = (st.leaveTotal !== undefined ? st.leaveTotal : DEFAULT_LEAVE) * 8;
-  return { is24, fullH, halfH, full, fullUsedH, half, hourly, sickDays, sickExcess, usedH, totalH, remainH: totalH - usedH };
+  return { is24, fullH, halfH, full, fullUsedH, half, hourly, sickDays, family, absent, sickExcess, usedH, totalH, remainH: totalH - usedH };
 }

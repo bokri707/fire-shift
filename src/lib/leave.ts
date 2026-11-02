@@ -11,6 +11,9 @@ export const EXTRA_LEAVE = {
   dutyOff: { chip: '당휴', sub: '', name: '당직휴무', kind: 'edu' },
   subOff: { chip: '대휴', sub: '', name: '대체휴무', kind: 'edu' },
   turnOff: { chip: '순휴', sub: '', name: '순번휴무', kind: 'edu' },
+  tour: { chip: '관외', sub: '', name: '관외여행', kind: 'edu' },
+  fire: { chip: '소방', sub: '', name: '소방(기타)', kind: 'edu' },
+  absent: { chip: '결근', sub: '', name: '결근', kind: 'edu' },
 } as const;
 
 export type ExtraType = keyof typeof EXTRA_LEAVE;
