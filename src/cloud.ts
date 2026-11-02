@@ -145,7 +145,7 @@ export async function fetchTeamIfChanged(code: string, myId: string, prevHash: s
 export function myProfile(st: AppState, since: string, nick?: string): { name: string; team: number; anchor: string; ex: Record<string, string> } | null {
   if (!st.cloud) return null;
   const ex: Record<string, string> = {};
-  Object.keys(st.ex).forEach((k) => { if (k >= since && st.ex[k].type !== 'memo') ex[k] = isExtra(st.ex[k].type) ? 'etc' : st.ex[k].type; });
+  Object.keys(st.ex).forEach((k) => { if (k >= since && st.ex[k].type !== 'memo' && st.ex[k].type !== 'hourly') ex[k] = isExtra(st.ex[k].type) ? 'etc' : st.ex[k].type; });
   ex._p = encPattern(st.pattern, st.anchor);
   if (st.pattern.t === 'manual') Object.keys(st.manual).forEach((k) => { if (k >= since) ex['b:' + k] = st.manual[k]; });
   return { name: nick || st.nick || '나', team: st.team, anchor: st.anchor, ex };

@@ -3,6 +3,7 @@ import {
   KeyboardAvoidingView, LayoutChangeEvent, Modal, Platform, Pressable, ScrollView, Text, TextInput, View,
 } from 'react-native';
 import { EXTRA_LEAVE, ExtraType, isExtra } from '../lib/leave';
+import { DEFAULT_LEAVE, fmtLeave, leaveUsage } from '../lib/leaveCalc';
 import { WD, fromIdx, idx, parse, wdOf } from '../lib/date';
 import { downloadIcs, dutyIcs } from '../lib/ics';
 import { holName } from '../lib/holidays';
@@ -17,7 +18,10 @@ import { Btn, Card, Chip, H2, Hint, HelpScope, Pill, SegRow } from '../ui';
 
 export default function CalendarScreen(): React.ReactElement {
   const t = useTheme();
-  const { state, today } = useStore();
+  const { state, today, update } = useStore();
+  const lyear = parse(today)[0];
+  const lu = leaveUsage(state, lyear);
+  const [totalTxt, setTotalTxt] = useState(String(state.leaveTotal !== undefined ? state.leaveTotal : DEFAULT_LEAVE));
   const [sel, setSel] = useState<string | null>(null);
   const [focus, setFocus] = useState<string | undefined>(undefined);
   const [showSetup, setShowSetup] = useState(false);
@@ -85,6 +89,38 @@ export default function CalendarScreen(): React.ReactElement {
         ))}
       </Card>
 
+      <Card style={{ gap: 10 }}>
+        <H2>{lyear}년 남은 연가</H2>
+        <Text style={{ color: lu.remainH < 0 ? t.sun : t.ink, fontSize: 28, fontWeight: '800' }}>{fmtLeave(lu.remainH)}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ color: t.ink, fontSize: 14 }}>한 해 연가</Text>
+          <TextInput
+            value={totalTxt}
+            keyboardType="numeric"
+            maxLength={4}
+            onChangeText={(v: string) => {
+              setTotalTxt(v);
+              const n = parseFloat(v.replace(',', '.'));
+              if (isFinite(n) && n >= 0 && n <= 99) update((s) => ({ ...s, leaveTotal: n }));
+            }}
+            style={{ width: 64, borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 8, color: t.ink, textAlign: 'center' }}
+          />
+          <Text style={{ color: t.ink, fontSize: 14 }}>일 (사용 {fmtLeave(lu.usedH)})</Text>
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          <Chip label="24시간 근무자로 계산" on={lu.is24} onPress={() => update((s) => ({ ...s, leave24: !lu.is24 }))} />
+          {lu.is24 ? <Chip label="전일연가 2일" on={state.leaveFull1 !== true} onPress={() => update((s) => ({ ...s, leaveFull1: false }))} /> : null}
+          {lu.is24 ? <Chip label="전일연가 1일" on={state.leaveFull1 === true} onPress={() => update((s) => ({ ...s, leaveFull1: true }))} /> : null}
+        </View>
+        <View style={{ gap: 3 }}>
+          <Text style={{ color: t.ink2, fontSize: 13 }}>전일연가 {lu.full}회 → {fmtLeave(lu.full * lu.fullH)}</Text>
+          <Text style={{ color: t.ink2, fontSize: 13 }}>반일연가 {lu.half}회 → {fmtLeave(lu.half * lu.halfH)}</Text>
+          <Text style={{ color: t.ink2, fontSize: 13 }}>시간연가 {lu.hourly}시간 (8시간 = 1일)</Text>
+          <Text style={{ color: t.ink2, fontSize: 13 }}>병가(진단서 없음) {lu.sickDays}일{lu.sickExcess ? ' → 6일 초과 ' + lu.sickExcess + '일을 연가에서 공제' : ' (연 6일까지는 공제 없음)'}</Text>
+        </View>
+        <Hint keep>일반 근무는 전일 1일·반일 0.5일, 24시간 근무는 전일 2일·반일 1일로 셉니다. 지각·외출·조퇴는 "시간연가"로 기록하세요. 실제 연가일수는 e-사람과 꼭 맞춰 보세요.</Hint>
+      </Card>
+
       {Platform.OS === 'web' ? (
         <Card style={{ gap: 10 }}>
           <H2>근무 알림</H2>
@@ -106,7 +142,7 @@ export default function CalendarScreen(): React.ReactElement {
   );
 }
 
-type DraftType = ExtraType | 'none' | 'leave' | 'edu' | 'dispatch' | 'etc' | 'swap' | 'cover' | 'careIn' | 'careOut' | 'careBoth';
+type DraftType = ExtraType | 'hourly' | 'none' | 'leave' | 'edu' | 'dispatch' | 'etc' | 'swap' | 'cover' | 'careIn' | 'careOut' | 'careBoth';
 
 function EditorModal({ date, onClose }: { date: string; onClose: () => void }): React.ReactElement {
   const t = useTheme();
@@ -117,6 +153,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
   const [type, setType] = useState<DraftType>(cur ? (cur.type === 'care' ? 'careOut' : cur.type === 'memo' ? 'none' : cur.type) : 'none');
   const [who, setWho] = useState(cur ? cur.who : '');
   const [memo, setMemo] = useState(cur ? cur.memo : '');
+  const [hrs, setHrs] = useState(cur && cur.hrs ? cur.hrs : 1);
   const [err, setErr] = useState('');
   const three = isThree(state.pattern);
   const [mlabel, setMlabel] = useState<string>(state.manual[date] || '휴');
@@ -171,7 +208,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
     update((s) => {
       const ex = { ...s.ex };
       if (type === 'none') { if (memo.trim()) ex[date] = { type: 'memo', who: '', memo: memo.trim() }; else delete ex[date]; }
-      else ex[date] = { type, who: type === 'swap' ? who.trim() : '', memo: memo.trim() };
+      else ex[date] = { type, who: type === 'swap' ? who.trim() : '', memo: memo.trim(), ...(type === 'hourly' ? { hrs } : {}) };
       const manual = { ...s.manual };
       if (s.pattern.t === 'manual') { if (mlabel === '휴') delete manual[date]; else manual[date] = mlabel; }
       return { ...s, ex, manual };
@@ -277,6 +314,14 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
               <Chip key={k} label={EXTRA_LEAVE[k].name} on={type === k} onPress={() => { setType(k); setErr(''); }} />
             ))}
           </View>
+          <Chip label="시간연가(지각·외출·조퇴)" on={type === 'hourly'} onPress={() => { setType('hourly'); setErr(''); }} />
+          {type === 'hourly' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ flex: 1, color: t.ink, fontSize: 14 }}>쓴 시간: <Text style={{ fontWeight: '800' }}>{hrs}시간</Text> <Text style={{ color: t.ink2, fontSize: 12 }}>(근무는 그대로, 연가에서만 공제)</Text></Text>
+              <Btn small ghost label="−" onPress={() => setHrs(Math.max(0.5, hrs - 0.5))} style={{ minWidth: 40 }} />
+              <Btn small ghost label="+" onPress={() => setHrs(Math.min(24, hrs + 0.5))} style={{ minWidth: 40 }} />
+            </View>
+          ) : null}
           {isExtra(type) ? <Hint keep>이 날은 근무에서 빠지는 날로 표시됩니다. 같은 소모임 팀원에게는 "기타"로 보이고 연가계획표의 빠지는 인원에 들어갑니다.</Hint> : null}
           {type === 'dispatch' || type === 'etc' ? <Hint>이 날은 근무에서 빠지는 날로 표시됩니다. (교육과 같은 방식) 같은 소모임 팀원의 "연가계획표"에서 빠지는 인원으로 계산됩니다.</Hint> : null}
           {type === 'cover' ? <Hint>쉬는 날 나와서 근무하는 보강근무입니다. 근무하는 날로 표시되고, 맞교대 장부에는 들어가지 않습니다.</Hint> : null}

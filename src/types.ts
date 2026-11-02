@@ -1,6 +1,6 @@
 export type Kind = 'duty' | 'off' | 'leave' | 'edu' | 'swap';
 import type { ExtraType } from './lib/leave';
-export type ExType = ExtraType | 'leave' | 'edu' | 'swap' | 'cover' | 'dispatch' | 'etc' | 'care' | 'careIn' | 'careOut' | 'careBoth' | 'memo';
+export type ExType = ExtraType | 'hourly' | 'leave' | 'edu' | 'swap' | 'cover' | 'dispatch' | 'etc' | 'care' | 'careIn' | 'careOut' | 'careBoth' | 'memo';
 
 /** 하루 근무 표시: l=칸에 쓰는 글자(당·비·주·야·휴 등), w=근무하는 날인지 */
 export interface PDay { l: string; w: boolean }
@@ -18,6 +18,8 @@ export interface Ex {
   type: ExType;
   who: string;
   memo: string;
+  /** 시간연가(지각·외출·조퇴)의 시간. 이 폰에서만 씁니다. */
+  hrs?: number;
   sample?: boolean;
 }
 
@@ -73,6 +75,12 @@ export interface AppState {
   polls: Poll[];
   /** 이 폰에서 올린 투표 id (확정은 올린 사람만) */
   myPolls?: string[];
+  /** 한 해 연가일수 (기본 21) */
+  leaveTotal?: number;
+  /** 24시간 근무자로 계산할지 (없으면 3교대는 켜짐) */
+  leave24?: boolean;
+  /** 24시간 근무자의 전일연가를 1일로 셀지 (기본은 2일) */
+  leaveFull1?: boolean;
   /** 이 폰에만 저장하는 내 일정 (서버에 올리지 않음) */
   myEvents?: { id: string; name: string; dates: string[] }[];
   cloud: CloudInfo | null;
