@@ -109,16 +109,14 @@ export default function CalendarScreen(): React.ReactElement {
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           <Chip label="24시간 근무자로 계산" on={lu.is24} onPress={() => update((s) => ({ ...s, leave24: !lu.is24 }))} />
-          {lu.is24 ? <Chip label="전일연가 2일" on={state.leaveFull1 !== true} onPress={() => update((s) => ({ ...s, leaveFull1: false }))} /> : null}
-          {lu.is24 ? <Chip label="전일연가 1일" on={state.leaveFull1 === true} onPress={() => update((s) => ({ ...s, leaveFull1: true }))} /> : null}
         </View>
         <View style={{ gap: 3 }}>
-          <Text style={{ color: t.ink2, fontSize: 13 }}>전일연가 {lu.full}회 → {fmtLeave(lu.full * lu.fullH)}</Text>
+          <Text style={{ color: t.ink2, fontSize: 13 }}>전일연가 {lu.full}회 → {fmtLeave(lu.fullUsedH)}</Text>
           <Text style={{ color: t.ink2, fontSize: 13 }}>반일연가 {lu.half}회 → {fmtLeave(lu.half * lu.halfH)}</Text>
           <Text style={{ color: t.ink2, fontSize: 13 }}>시간연가 {lu.hourly}시간 (8시간 = 1일)</Text>
           <Text style={{ color: t.ink2, fontSize: 13 }}>병가(진단서 없음) {lu.sickDays}일{lu.sickExcess ? ' → 6일 초과 ' + lu.sickExcess + '일을 연가에서 공제' : ' (연 6일까지는 공제 없음)'}</Text>
         </View>
-        <Hint keep>일반 근무는 전일 1일·반일 0.5일, 24시간 근무는 전일 2일·반일 1일로 셉니다. 지각·외출·조퇴는 "시간연가"로 기록하세요. 실제 연가일수는 e-사람과 꼭 맞춰 보세요.</Hint>
+        <Hint keep>일반 근무는 전일 1일·반일 0.5일, 24시간 근무는 전일 2일(날짜마다 1일로 바꿀 수 있음)·반일 1일로 셉니다. 지각·외출·조퇴는 "시간연가"로 기록하세요. 실제 연가일수는 e-사람과 꼭 맞춰 보세요.</Hint>
       </Card>
 
       {Platform.OS === 'web' ? (
@@ -154,6 +152,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
   const [who, setWho] = useState(cur ? cur.who : '');
   const [memo, setMemo] = useState(cur ? cur.memo : '');
   const [hrs, setHrs] = useState(cur && cur.hrs ? cur.hrs : 1);
+  const [full1, setFull1] = useState(cur && cur.full1 ? true : false);
   const [err, setErr] = useState('');
   const three = isThree(state.pattern);
   const [mlabel, setMlabel] = useState<string>(state.manual[date] || '휴');
@@ -208,7 +207,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
     update((s) => {
       const ex = { ...s.ex };
       if (type === 'none') { if (memo.trim()) ex[date] = { type: 'memo', who: '', memo: memo.trim() }; else delete ex[date]; }
-      else ex[date] = { type, who: type === 'swap' ? who.trim() : '', memo: memo.trim(), ...(type === 'hourly' ? { hrs } : {}) };
+      else ex[date] = { type, who: type === 'swap' ? who.trim() : '', memo: memo.trim(), ...(type === 'hourly' ? { hrs } : {}), ...(type === 'leave' && full1 ? { full1: true } : {}) };
       const manual = { ...s.manual };
       if (s.pattern.t === 'manual') { if (mlabel === '휴') delete manual[date]; else manual[date] = mlabel; }
       return { ...s, ex, manual };
@@ -323,6 +322,13 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
             </View>
           ) : null}
           {isExtra(type) ? <Hint keep>이 날은 근무에서 빠지는 날로 표시됩니다. 같은 소모임 팀원에게는 "기타"로 보이고 연가계획표의 빠지는 인원에 들어갑니다.</Hint> : null}
+          {type === 'leave' && leaveUsage(state, 2000).is24 ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+              <Text style={{ color: t.ink2, fontSize: 12 }}>이 날 연가 계산</Text>
+              <Chip label="2일 (기본)" on={!full1} onPress={() => setFull1(false)} />
+              <Chip label="1일" on={full1} onPress={() => setFull1(true)} />
+            </View>
+          ) : null}
           {type === 'dispatch' || type === 'etc' ? <Hint>이 날은 근무에서 빠지는 날로 표시됩니다. (교육과 같은 방식) 같은 소모임 팀원의 "연가계획표"에서 빠지는 인원으로 계산됩니다.</Hint> : null}
           {type === 'cover' ? <Hint>쉬는 날 나와서 근무하는 보강근무입니다. 근무하는 날로 표시되고, 맞교대 장부에는 들어가지 않습니다.</Hint> : null}
           {type === 'careIn' || type === 'careOut' || type === 'careBoth' ? <Hint>근무는 그대로이고, 육아시간을 쓴 날로 표시됩니다. {type === 'careIn' ? '출근할 때 쓰면 당 앞에 육이 붙습니다.' : type === 'careOut' ? '퇴근할 때 쓰면 당 뒤에 육이 붙습니다.' : '출근과 퇴근 모두 쓰면 당 앞뒤로 육이 붙습니다.'} 같은 소모임에 들어 있는 배우자에게도 보입니다.</Hint> : null}

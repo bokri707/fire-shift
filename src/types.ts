@@ -20,6 +20,8 @@ export interface Ex {
   memo: string;
   /** 시간연가(지각·외출·조퇴)의 시간. 이 폰에서만 씁니다. */
   hrs?: number;
+  /** 24시간 근무자의 전일연가를 이 날만 1일로 셀지 (없으면 2일). 이 폰에서만 씁니다. */
+  full1?: boolean;
   sample?: boolean;
 }
 
@@ -79,8 +81,6 @@ export interface AppState {
   leaveTotal?: number;
   /** 24시간 근무자로 계산할지 (없으면 3교대는 켜짐) */
   leave24?: boolean;
-  /** 24시간 근무자의 전일연가를 1일로 셀지 (기본은 2일) */
-  leaveFull1?: boolean;
   /** 이 폰에만 저장하는 내 일정 (서버에 올리지 않음) */
   myEvents?: { id: string; name: string; dates: string[] }[];
   cloud: CloudInfo | null;
