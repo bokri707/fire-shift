@@ -36,6 +36,11 @@ export function parseEvent(p: Poll): { kind: Exclude<EvKind, 'meet'>; name: stri
   return null;
 }
 
+/** 제목에 팀 일정 말머리가 붙어 있는지 (확정 전이어도 투표가 아니라 일정입니다.) */
+export function isEventTitle(title: string): boolean {
+  return EV_KINDS.some((e) => title.indexOf(e.tag) === 0);
+}
+
 export function isEventPoll(p: Poll): boolean {
   return parseEvent(p) !== null;
 }

@@ -5,13 +5,14 @@ import AdBanner from './src/AdBanner';
 import CalendarScreen from './src/screens/CalendarScreen';
 import CloudSync from './src/CloudSync';
 import DutyNotifier from './src/DutyNotifier';
+import PollAlert from './src/PollAlert';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TeamScreen from './src/screens/TeamScreen';
 import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
 import { WD, fromIdx, idx, parse, wdOf } from './src/lib/date';
 import { eff } from './src/lib/shift';
 import { bump } from './src/lib/usage';
-import { StoreProvider, focusKind, groupKind, useStore } from './src/store';
+import { StoreProvider, focusKind, groupKind, switchGroup, useStore } from './src/store';
 import { useTheme } from './src/theme';
 
 const NAVY = '#1E4B6B';
@@ -65,6 +66,7 @@ function Shell(): React.ReactElement {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: t.bg, paddingTop: kakao ? top : 0 }}>
       <CloudSync tab={cur} />
       <DutyNotifier />
+      <PollAlert onGo={(k, code) => { setTab(k); bump('team'); update((s) => switchGroup(s, code)); }} />
       <StatusBar style={kakao && !t.dark ? 'dark' : 'light'} />
       {kakao ? (
         <Pressable onPress={openInExternalBrowser} style={{ backgroundColor: t.accent, paddingVertical: 10, paddingHorizontal: 18 }}>
