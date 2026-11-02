@@ -116,7 +116,6 @@ export default function CalendarScreen(): React.ReactElement {
           <Text style={{ color: t.ink2, fontSize: 13 }}>시간연가 {lu.hourly}시간 (8시간 = 1일)</Text>
           <Text style={{ color: t.ink2, fontSize: 13 }}>병가(진단서 없음) {lu.sickDays}일{lu.sickExcess ? ' → 6일 초과 ' + lu.sickExcess + '일을 연가에서 공제' : ' (연 6일까지는 공제 없음)'}</Text>
         </View>
-        <Hint keep>일반 근무는 전일 1일·반일 0.5일, 24시간 근무는 전일 2일(날짜마다 1일로 바꿀 수 있음)·반일 1일로 셉니다. 지각·외출·조퇴는 "시간연가"로 기록하세요. 실제 연가일수는 e-사람과 꼭 맞춰 보세요.</Hint>
       </Card>
 
       {Platform.OS === 'web' ? (
@@ -321,7 +320,7 @@ function EditorModal({ date, onClose }: { date: string; onClose: () => void }): 
               <Btn small ghost label="+" onPress={() => setHrs(Math.min(24, hrs + 0.5))} style={{ minWidth: 40 }} />
             </View>
           ) : null}
-          {isExtra(type) ? <Hint keep>이 날은 근무에서 빠지는 날로 표시됩니다. 같은 소모임 팀원에게는 "기타"로 보이고 연가계획표의 빠지는 인원에 들어갑니다.</Hint> : null}
+          {isExtra(type) ? <Hint>이 날은 근무에서 빠지는 날로 표시됩니다. 같은 소모임 팀원에게는 "기타"로 보이고 연가계획표의 빠지는 인원에 들어갑니다.</Hint> : null}
           {type === 'leave' && leaveUsage(state, 2000).is24 ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
               <Text style={{ color: t.ink2, fontSize: 12 }}>이 날 연가 계산</Text>
