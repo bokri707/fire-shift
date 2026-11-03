@@ -111,7 +111,7 @@ function dayText(e: MEff): string {
   return parts.join(' · ');
 }
 
-/** 우리 팀(같은 팀 번호) 사람들 중 근무에서 빠지는 인원(연가·교육·출장·기타)을 날짜별로 세어, 한도(총 인원의 1/3)를 넘는지 보여줍니다. */
+/** 우리 팀(같은 팀 번호) 사람들 중 근무에서 빠지는 인원(연가·교육·출장·기타)을 날짜별로 세어 보여줍니다. */
 function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId }: { all: Person[]; today: string; y: number; m: number; code: string; myId: string; polls: Poll[]; plan: boolean; partner?: Person; spouseId?: string }): React.ReactElement {
   const t = useTheme();
   const { update, reportErr } = useStore();
@@ -270,7 +270,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
         <Dot color={EV_COLOR.meet} label="확정된 모임" square />
       </View>
       {plan ? <View style={{ gap: 6 }}>
-        <Help>        <Text style={{ color: t.ink, fontSize: 13 }}>육아시간: 칸의 <Text style={{ fontWeight: '800' }}>왼쪽 아래 모서리는 출근</Text> 때, <Text style={{ fontWeight: '800' }}>오른쪽 아래 모서리는 퇴근</Text> 때 쓰는 사람입니다. (한도 계산에는 세지 않습니다)</Text></Help>
+        <Help>        <Text style={{ color: t.ink, fontSize: 13 }}>육아시간: 칸의 <Text style={{ fontWeight: '800' }}>왼쪽 아래 모서리는 출근</Text> 때, <Text style={{ fontWeight: '800' }}>오른쪽 아래 모서리는 퇴근</Text> 때 쓰는 사람입니다.</Text></Help>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {team.slice().sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).map((p) => (
             <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -424,7 +424,7 @@ export function TeamLeaveCard(): React.ReactElement | null {
     <Card style={{ gap: 10 }}>
       <H2>{plan ? '우리 팀 연가계획표' : '모임 일정'}</H2>
       {others.length === 0 ? (
-        <Hint>{plan ? '같은 소모임에 팀원이 들어오면 팀원들의 연가·교육·출장 계획을 한 달력에서 보고, 한도(총 인원의 1/3)를 넘는 날을 미리 알 수 있습니다. 위의 소모임 코드로 팀원을 초대하세요.' : '같은 소모임에 사람이 들어오면 모임 일정을 한 달력에서 함께 볼 수 있습니다. 위의 소모임 코드로 초대하세요.'}</Hint>
+        <Hint>{plan ? '같은 소모임에 팀원이 들어오면 팀원들의 연가·교육·출장 계획을 한 달력에서 보고, 날짜별로 빠지는 인원을 미리 알 수 있습니다. 위의 소모임 코드로 팀원을 초대하세요.' : '같은 소모임에 사람이 들어오면 모임 일정을 한 달력에서 함께 볼 수 있습니다. 위의 소모임 코드로 초대하세요.'}</Hint>
       ) : (
         <>
           <MonthNav view={view} move={move} />

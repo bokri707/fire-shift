@@ -287,7 +287,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
               setTeamKind(c.code, v).catch(() => reportErr('종류를 서버에 저장하지 못했습니다.'));
             }}
           />
-          <Hint>근무 팀은 연가 한도·보강 계산과 육아시간을 보여주고, 모임은 일정과 투표만 보여줍니다. 바꾸면 다른 탭으로 옮겨 갑니다.</Hint>
+          <Hint>근무 팀은 빠지는 인원 현황과 육아시간을 보여주고, 모임은 일정과 투표만 보여줍니다. 바꾸면 다른 탭으로 옮겨 갑니다.</Hint>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: t.ink, fontSize: 14, fontWeight: '600' }}>부부(가족) 소모임으로 표시</Text>
