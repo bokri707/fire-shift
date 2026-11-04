@@ -17,3 +17,6 @@ export const TESTER_RECRUIT = true;
 // AdMob 가입 후 받은 '배너 광고 단위 ID'(ca-app-pub-숫자/숫자)를 아래 따옴표 안에 넣으면 진짜 광고로 바뀝니다.
 // 앱 ID(ca-app-pub-숫자~숫자)는 이 파일이 아니라 app.json의 androidAppId 자리에 넣습니다.
 export const ADMOB_BANNER_UNIT = 'ca-app-pub-3967129261197383/1130146540';
+
+// [시험용] 일정 가져오기 카드(달력 화면). 유료 기능 후보이며 아직 공개하지 않습니다. 시험할 때만 true로 바꾸세요.
+export const IMPORT_TEST = false;
