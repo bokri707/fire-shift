@@ -25,7 +25,7 @@ async function req(method: string, path: string, body?: unknown, prefer?: string
 
 const enc = encodeURIComponent;
 
-const rpc = (fn: string, args: Record<string, unknown>): Promise<unknown> => req('POST', 'rpc/' + fn, args);
+export const rpc = (fn: string, args: Record<string, unknown>): Promise<unknown> => req('POST', 'rpc/' + fn, args);
 
 /** 사용 횟수 합계만 올립니다. 누가 눌렀는지는 보내지 않습니다. */
 export async function bumpUsage(kind: string): Promise<void> {

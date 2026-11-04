@@ -7,6 +7,7 @@ import { notifySupported } from '../lib/notify';
 import { setNotifyPref, useNotifyPref } from '../DutyNotifier';
 import { groupKind, pairGroupCode, useStore } from '../store';
 import SetupCard from '../SetupCard';
+import CsCard from '../CsCard';
 import { Btn, Card, Chip, H2, Hint, HelpScope } from '../ui';
 
 const hlabel = (h: number): string => (h < 12 ? '오전 ' + (h === 0 ? 12 : h) : '오후 ' + (h === 12 ? 12 : h - 12)) + '시';
@@ -142,6 +143,8 @@ export default function SettingsScreen({ onDone }: { onDone?: () => void }): Rea
         {msg ? <Hint bad={bad}>{msg}</Hint> : null}
         <Btn ghost label={armed ? '한 번 더 눌러 전부 초기화' : '모든 기록 초기화'} onPress={reset} />
       </Card>
+
+      <CsCard />
 
       <Card style={{ gap: 10 }}>
         <H2>안내</H2>
