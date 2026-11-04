@@ -8,6 +8,7 @@ import DutyNotifier from './src/DutyNotifier';
 import PollAlert from './src/PollAlert';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TeamScreen from './src/screens/TeamScreen';
+import TesterBanner from './src/TesterBanner';
 import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
 import { WD, fromIdx, idx, parse, wdOf } from './src/lib/date';
 import { eff } from './src/lib/shift';
@@ -85,6 +86,7 @@ function Shell(): React.ReactElement {
           <Text style={{ color: tm.works ? '#FFFFFF' : '#A9C3D6', fontSize: tm.works ? 14 : 11, fontWeight: tm.works ? '700' : '400' }}>내일 {tm.label}</Text>
         </View>
       </View>
+      <TesterBanner />
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: t.line, backgroundColor: t.surface, marginTop: 8 }}>
         {shown.map((x) => (
           <Pressable

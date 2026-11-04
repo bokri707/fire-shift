@@ -9,6 +9,10 @@ export const SITE_URL = '';
 export const PRIVACY_URL = 'https://fire-shift.fire-shift-app.workers.dev/privacy.html';
 export const TERMS_URL = 'https://fire-shift.fire-shift-app.workers.dev/terms.html';
 
+// 안드로이드 테스터 모집 안내(웹의 안드로이드 폰 브라우저에서만 보이는 배너) 스위치입니다.
+// true = 배너가 보입니다. 모집이 끝나면 false로 바꿔서 올리면 모두에게서 사라집니다.
+export const TESTER_RECRUIT = true;
+
 // 광고(AdMob) 설정입니다. 비워 두면 구글이 주는 "테스트 광고"가 나옵니다. (실제 수익은 나지 않습니다.)
 // AdMob 가입 후 받은 '배너 광고 단위 ID'(ca-app-pub-숫자/숫자)를 아래 따옴표 안에 넣으면 진짜 광고로 바뀝니다.
 // 앱 ID(ca-app-pub-숫자~숫자)는 이 파일이 아니라 app.json의 androidAppId 자리에 넣습니다.
