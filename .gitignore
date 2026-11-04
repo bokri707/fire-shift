@@ -2,3 +2,10 @@ node_modules/
 dist/
 .expo/
 *.log
+# 비밀 정보(서명 키, 비밀번호 파일)는 GitHub에 올라가면 안 됩니다.
+credentials.json
+*.jks
+*.keystore
+*.p12
+.env
+.env.*
