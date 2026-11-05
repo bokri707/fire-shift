@@ -411,10 +411,10 @@ function useMonth(startOffset: number): { view: { y: number; m: number }; move: 
   return { view, move, swipe: { ...pan.panHandlers, style: webTouch } };
 }
 
-/** 팀·모임 탭: 다음 달 우리 팀 연가계획표 */
+/** 팀·모임 탭: 이번 달부터 보는 우리 팀 연가계획표 */
 export function TeamLeaveCard(): React.ReactElement | null {
   const { state, today } = useStore();
-  const { view, move, swipe } = useMonth(1);
+  const { view, move, swipe } = useMonth(0);
   if (!state.cloud) return null;
   const plan = state.cloud.kind !== 'meet';
   const ms = roster(state);
