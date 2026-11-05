@@ -222,7 +222,9 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
       <Pressable key={s} onPress={() => setSel(s)} style={{ flex: 1, minHeight: 80, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s || noCare ? 2 : 1, borderColor: sel === s ? t.accent : noCare ? t.bad : isToday ? TODAY : t.line, backgroundColor: bg }}>
         <Text style={{ fontSize: 12, fontWeight: '700', color: isToday ? '#1B1B1B' : hn || wd === 0 || wd === 6 ? t.sun : t.ink, paddingLeft: 2, ...(isToday ? { backgroundColor: TODAY, alignSelf: 'flex-start', borderRadius: 5, paddingHorizontal: 4, overflow: 'hidden' } : {}) }}>{d}</Text>
         {plan && !partner && mEff(meP, s).kind === 'duty' ? (
-          <View style={{ position: 'absolute', top: 5, right: 4, width: 10, height: 10, borderRadius: 5, backgroundColor: t.duty }} />
+          <View style={{ alignSelf: 'center', marginTop: 3, height: 20, minWidth: 30, paddingHorizontal: 6, borderRadius: 6, backgroundColor: t.duty, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: t.onDuty }}>당</Text>
+          </View>
         ) : null}
         {hn ? <Text numberOfLines={1} style={{ fontSize: 9, fontWeight: '700', color: t.sun, paddingLeft: 2 }}>{hn}</Text> : null}
         {partner || !plan ? (
@@ -257,7 +259,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
       {plan ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <Dot color="#EEF1F4" label="팀 근무일" square />
         <Dot color="#DCEFE6" label="빠짐 (숫자=빠지는 인원)" square />
-        {!partner ? <Dot color={t.duty} label="내 근무" /> : null}
+        {!partner ? <Dot color={t.duty} label="내 당직" square /> : null}
       </View> : null}
       {partner ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
