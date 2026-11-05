@@ -221,14 +221,9 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
     cells.push(
       <Pressable key={s} onPress={() => setSel(s)} style={{ flex: 1, minHeight: 80, padding: 3, borderRadius: 8, borderWidth: isToday || sel === s || noCare ? 2 : 1, borderColor: sel === s ? t.accent : noCare ? t.bad : isToday ? TODAY : t.line, backgroundColor: bg }}>
         <Text style={{ fontSize: 12, fontWeight: '700', color: isToday ? '#1B1B1B' : hn || wd === 0 || wd === 6 ? t.sun : t.ink, paddingLeft: 2, ...(isToday ? { backgroundColor: TODAY, alignSelf: 'flex-start', borderRadius: 5, paddingHorizontal: 4, overflow: 'hidden' } : {}) }}>{d}</Text>
-        {plan && !partner ? (() => {
-          const me = mEff(meP, s);
-          const txt = me.kind === 'duty' ? '당' : me.kind === 'leave' ? '연' : me.kind === 'edu' ? (me.part ? me.part : me.why.slice(0, 1)) : me.kind === 'swap' && me.works ? (me.cover ? '보' : '맞') : '';
-          if (!txt) return null;
-          const dd = me.kind === 'duty';
-          const c = kindColors(t, me.kind);
-          return <View style={{ position: 'absolute', top: 3, right: 3, minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: dd ? t.duty : 'transparent', borderWidth: dd ? 0 : 1.5, borderColor: c.fg }}><Text style={{ fontSize: 11, fontWeight: '800', color: dd ? t.onDuty : c.fg }}>{txt}</Text></View>;
-        })() : null}
+        {plan && !partner && mEff(meP, s).kind === 'duty' ? (
+          <View style={{ position: 'absolute', top: 5, right: 4, width: 10, height: 10, borderRadius: 5, backgroundColor: t.duty }} />
+        ) : null}
         {hn ? <Text numberOfLines={1} style={{ fontSize: 9, fontWeight: '700', color: t.sun, paddingLeft: 2 }}>{hn}</Text> : null}
         {partner || !plan ? (
           <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>
@@ -262,7 +257,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
       {plan ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <Dot color="#EEF1F4" label="팀 근무일" square />
         <Dot color="#DCEFE6" label="빠짐 (숫자=빠지는 인원)" square />
-        {!partner ? <Dot color={t.duty} label="내 근무 (당)" /> : null}
+        {!partner ? <Dot color={t.duty} label="내 근무" /> : null}
       </View> : null}
       {partner ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
