@@ -90,7 +90,11 @@ export default function ImportCard(): React.ReactElement {
         body: JSON.stringify({ image, mime: 'image/jpeg', year }),
       });
       if (r.status === 429) { setErr('지금은 사용이 많습니다. 조금 뒤에 다시 해 보세요.'); return; }
-      if (!r.ok) { setErr('사진을 읽지 못했습니다. 잠시 뒤 다시 해 보세요.'); return; }
+      if (!r.ok) {
+        let why = '';
+        try { const e = (await r.json()) as { status?: number; detail?: string }; why = (e.status ? ' (' + e.status + ') ' : ' ') + (e.detail || ''); } catch (x) { why = ' (' + r.status + ')'; }
+        setErr('사진을 읽지 못했습니다.' + why); return;
+      }
       const d = (await r.json()) as { text?: string };
       setText((d.text || '').trim());
       if (!d.text) setErr('읽을 수 있는 일정이 없습니다.');
@@ -110,7 +114,7 @@ export default function ImportCard(): React.ReactElement {
         value={text}
         onChangeText={(v: string) => { setText(v); setDone(''); }}
         multiline
-        placeholder={'11/5 김현수 교육 (5~6)\n11/23~25 정민희 교육'}
+        placeholder={'(예시 · 아직 입력 전) 11/5 홍길동 교육'}
         placeholderTextColor={t.ink2}
         style={{ minHeight: 120, borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, color: t.ink, textAlignVertical: 'top' }}
       />
