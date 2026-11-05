@@ -12,15 +12,6 @@ interface Row { name: string; dates: string[] }
 interface WebDoc {
   createElement: (t: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
-const CODE_KEY = 'fire-shift-import-code';
-function webStore(k: string, v?: string): string {
-  try {
-    const ls = (globalThis as unknown as { localStorage?: { getItem: (k: string) => string | null; setItem: (k: string, v: string) => void } }).localStorage;
-    if (!ls) return '';
-    if (v !== undefined) { ls.setItem(k, v); return v; }
-    return ls.getItem(k) || '';
-  } catch (e) { return ''; }
-}
 /** 웹에서 사진을 고르거나 찍게 하고, 긴 변 1600px로 줄인 JPEG(base64)를 돌려줍니다. */
 function pickPhoto(): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -78,7 +69,6 @@ export default function ImportCard(): React.ReactElement {
   const year = parse(today)[0];
   const [text, setText] = useState('');
   const [done, setDone] = useState('');
-  const [code, setCode] = useState(webStore(CODE_KEY));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const { rows, bad } = parseLines(text, year);
@@ -91,17 +81,15 @@ export default function ImportCard(): React.ReactElement {
   };
   const photo = async (): Promise<void> => {
     setErr(''); setDone('');
-    if (!code.trim()) { setErr('시험 코드를 먼저 입력하세요.'); return; }
-    webStore(CODE_KEY, code.trim());
     setBusy(true);
     try {
       const image = await pickPhoto();
       const r = await fetch(SUPABASE_URL.replace(/\/+$/, '') + '/functions/v1/read-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
-        body: JSON.stringify({ code: code.trim(), image, mime: 'image/jpeg', year }),
+        body: JSON.stringify({ image, mime: 'image/jpeg', year }),
       });
-      if (r.status === 403) { setErr('시험 코드가 맞지 않습니다.'); return; }
+      if (r.status === 429) { setErr('지금은 사용이 많습니다. 조금 뒤에 다시 해 보세요.'); return; }
       if (!r.ok) { setErr('사진을 읽지 못했습니다. 잠시 뒤 다시 해 보세요.'); return; }
       const d = (await r.json()) as { text?: string };
       setText((d.text || '').trim());
@@ -114,7 +102,6 @@ export default function ImportCard(): React.ReactElement {
       <Hint>사진을 찍으면 아래 칸에 한 줄에 하나씩 읽어 옵니다. 틀린 곳은 고친 뒤 "넣기"를 누르세요. 글을 직접 붙여 넣어도 됩니다. 사진은 읽는 즉시 버려지고 저장되지 않으며, 넣은 일정은 이 기기의 내 일정에만 저장됩니다.</Hint>
       {Platform.OS === 'web' ? (
         <View style={{ gap: 8 }}>
-          <TextInput value={code} onChangeText={setCode} placeholder="시험 코드" placeholderTextColor={t.ink2} secureTextEntry style={{ borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, color: t.ink }} />
           <Btn label={busy ? '사진 읽는 중…' : '📷 사진으로 가져오기'} onPress={() => { if (!busy) void photo(); }} />
           {err ? <Text style={{ color: t.sun, fontSize: 13 }}>{err}</Text> : null}
         </View>
