@@ -301,9 +301,23 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
         </View>
       ) : null}
       {plan && si && sp ? (
-        <View style={{ borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, gap: 4 }}>
-          <Text style={{ color: t.ink, fontSize: 14, fontWeight: '700' }}>{sp[1]}월 {sp[2]}일 · {si.N === 0 ? '이 팀은 근무하지 않는 날' : '근무 대상 ' + si.N + '명 중 ' + si.L + '명 빠짐'}</Text>
-          {si.N > 0 ? <Text style={{ color: t.ink2, fontSize: 13 }}>{si.names.length ? '빠지는 사람: ' + si.names.join(', ') : '빠지는 사람 없음'}</Text> : null}
+        <View style={{ borderWidth: 1, borderColor: t.line, borderRadius: 10, padding: 12, gap: 8, marginTop: 10 }}>
+          <Text style={{ color: t.ink, fontSize: 16, fontWeight: '800' }}>{sp[1]}월 {sp[2]}일 · {si.N === 0 ? '이 팀은 근무하지 않는 날' : '근무 ' + si.N + '명 중 ' + si.L + '명 빠짐'}</Text>
+          {si.N > 0 ? (si.names.length ? (
+            <View style={{ gap: 6 }}>
+              {si.names.map((nm, i) => {
+                const mm = /^(.*)\((.*)\)$/.exec(nm);
+                const who = mm ? mm[1] : nm; const why = mm ? mm[2] : '';
+                const c = kindColors(t, 'leave');
+                return (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {why ? <View style={{ backgroundColor: c.bg, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: c.fg }}><Text style={{ color: c.fg, fontSize: 13, fontWeight: '800' }}>{why}</Text></View> : null}
+                    <Text style={{ color: t.ink, fontSize: 16, fontWeight: '700' }}>{who}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : <Text style={{ color: t.ink2, fontSize: 14 }}>빠지는 사람 없음</Text>) : null}
           {(() => {
             const cr = sel ? careOf(sel) : { inn: [], out: [] };
             const people = Array.from(new Set(cr.inn.concat(cr.out)));
@@ -325,7 +339,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
         </View>
       ) : <Help><Text style={{ color: t.ink2, fontSize: 13 }}>{plan ? '날짜를 누르면 그날 빠지는 사람과 남은 인원이 나오고, 팀 일정(직장교육·회식 등)도 올릴 수 있습니다.' : '날짜를 누르면 그날 일정을 보고 올릴 수 있습니다.'}</Text></Help>}
       {sel ? (
-        <View style={{ borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, gap: 8 }}>
+        <View style={{ borderWidth: 1, borderColor: t.line, borderRadius: 8, padding: 10, gap: 8, marginTop: 10 }}>
           <Text style={{ color: t.ink, fontSize: 14, fontWeight: '700' }}>{sp ? sp[1] + '월 ' + sp[2] + '일' : ''} {plan ? '팀 일정' : '모임 일정'}</Text>
           {(ev[sel] || []).length === 0 ? <Help><Text style={{ color: t.ink2, fontSize: 13 }}>올라온 일정이 없습니다. 아래에 이름만 입력하면 됩니다.</Text></Help> : null}
           {(ev[sel] || []).map((e) => {
