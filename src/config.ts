@@ -19,4 +19,4 @@ export const TESTER_RECRUIT = true;
 export const ADMOB_BANNER_UNIT = 'ca-app-pub-3967129261197383/1130146540';
 
 // [시험용] 일정 가져오기 카드(달력 화면). 유료 기능 후보이며 아직 공개하지 않습니다. 시험할 때만 true로 바꾸세요.
-export const IMPORT_TEST = false;
+export const IMPORT_TEST = true;
