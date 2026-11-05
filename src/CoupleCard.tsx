@@ -234,7 +234,7 @@ function TeamView({ all, today, y, m, code, myId, polls, plan, partner, spouseId
           </View>
         ) : null}
         <View style={{ flex: partner || !plan ? 0 : 1, alignItems: 'center', justifyContent: 'center' }}>
-          {plan && L > 0 ? <Text style={{ fontSize: 14, fontWeight: '800', color: fg }}>{L}</Text> : null}
+          {plan && L > 0 ? <View style={{ minWidth: 26, height: 26, paddingHorizontal: 6, borderRadius: 13, backgroundColor: fg, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 15, fontWeight: '800', color: '#FFFFFF' }}>{L}</Text></View> : null}
         </View>
         {ev[s] ? (
           <View style={{ flexDirection: 'row', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
