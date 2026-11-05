@@ -14,12 +14,7 @@ import MonthCalendar from '../MonthCalendar';
 import SetupCard from '../SetupCard';
 import { markWrite, newId, spouseOf, useStore } from '../store';
 import { useTheme } from '../theme';
-import ImportCard from '../ImportCard';
-import { IMPORT_TEST } from '../config';
-
 import { Btn, Card, Chip, H2, Hint, HelpScope, Pill, SegRow } from '../ui';
-
-const showImport = IMPORT_TEST || /[?&]import=1/.test(String(((globalThis as unknown as { location?: { search?: string } }).location || {}).search || ''));
 
 export default function CalendarScreen(): React.ReactElement {
   const t = useTheme();
@@ -147,8 +142,6 @@ export default function CalendarScreen(): React.ReactElement {
           </View>
         ) : null}
       </Card>
-
-      {showImport ? <ImportCard /> : null}
 
       {Platform.OS === 'web' ? (
         <Card style={{ gap: 10 }}>
