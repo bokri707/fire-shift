@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   KeyboardAvoidingView, LayoutChangeEvent, Modal, Platform, Pressable, ScrollView, Text, TextInput, View,
 } from 'react-native';
@@ -20,6 +21,13 @@ export default function CalendarScreen({ onTeam }: { onTeam?: (mode: 'create' | 
   const t = useTheme();
   const { state, today, update } = useStore();
   const lyear = parse(today)[0];
+  // 이미 팀에 들어가 있는 사람에게도 새 안내를 딱 한 번만 보여 줍니다. (닫거나 누르면 다시 안 뜸)
+  const INTRO_KEY = 'fire-shift-teamintro-v1';
+  const [introSeen, setIntroSeen] = useState<boolean | null>(null);
+  useEffect(() => {
+    AsyncStorage.getItem(INTRO_KEY).then((v) => setIntroSeen(v === '1')).catch(() => setIntroSeen(true));
+  }, []);
+  const closeIntro = (): void => { setIntroSeen(true); AsyncStorage.setItem(INTRO_KEY, '1').catch(() => undefined); };
   const lu = leaveUsage(state, lyear);
   const [totalTxt, setTotalTxt] = useState(String(state.leaveTotal !== undefined ? state.leaveTotal : DEFAULT_LEAVE));
   const [sel, setSel] = useState<string | null>(null);
@@ -148,6 +156,17 @@ export default function CalendarScreen({ onTeam }: { onTeam?: (mode: 'create' | 
           <H2>근무 알림</H2>
           <Hint>앞으로 60일 중 내 근무일을 폰 캘린더에 넣고, 근무 전날 저녁 9시에 알려줍니다. 근무표나 맞교대를 바꾸면 다시 받아서 열어 주세요.</Hint>
           <Btn small label="내 캘린더에 근무 알림 추가" onPress={() => { downloadIcs('근무알림.ics', dutyIcs(state, today, 60)); }} />
+        </Card>
+      ) : null}
+
+      {onTeam && introSeen === false && (state.cloud ? [state.cloud] : []).concat(state.others || []).some((g) => groupKind(g) === 'team') ? (
+        <Card style={{ gap: 10, borderWidth: 2, borderColor: t.accent }}>
+          <H2>👥 팀 안내가 쉬워졌어요</H2>
+          <Hint>팀 탭에서 같은 팀 동료의 근무·연가를 한 달력으로 보고, 날짜별로 빠지는 인원을 확인하세요. 아직 안 들어온 동료에게 초대 코드를 보내 보세요.</Hint>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1 }}><Btn label="팀 탭 열기" onPress={() => { closeIntro(); onTeam('create'); }} /></View>
+            <View style={{ flex: 1 }}><Btn ghost label="닫기" onPress={closeIntro} /></View>
+          </View>
         </Card>
       ) : null}
 
