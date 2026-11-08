@@ -7,7 +7,7 @@ import CloudSync from './src/CloudSync';
 import DutyNotifier from './src/DutyNotifier';
 import PollAlert from './src/PollAlert';
 import SettingsScreen from './src/screens/SettingsScreen';
-import TeamScreen from './src/screens/TeamScreen';
+import TeamScreen, { openTeamForm } from './src/screens/TeamScreen';
 import TesterBanner from './src/TesterBanner';
 import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
 import { WD, fromIdx, idx, parse, wdOf } from './src/lib/date';
@@ -101,7 +101,7 @@ function Shell(): React.ReactElement {
         ))}
       </View>
       <View style={{ flex: 1 }}>
-        <View style={{ flex: 1, display: cur === 'cal' ? 'flex' : 'none' }}><CalendarScreen /></View>
+        <View style={{ flex: 1, display: cur === 'cal' ? 'flex' : 'none' }}><CalendarScreen onTeam={(m) => { update((s) => ({ ...s, teamOn: true })); go('team'); openTeamForm(m); }} /></View>
         <View style={{ flex: 1, display: cur === 'team' ? 'flex' : 'none' }}><TeamScreen kind="team" /></View>
         <View style={{ flex: 1, display: cur === 'meet' ? 'flex' : 'none' }}><TeamScreen kind="meet" /></View>
         <View style={{ flex: 1, display: cur === 'set' ? 'flex' : 'none' }}><SettingsScreen onDone={() => go('cal')} /></View>

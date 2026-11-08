@@ -12,11 +12,11 @@ import { PERSONAL_COLOR, eventTitle, groupEvents, personalByDate } from '../lib/
 import { LBL, OFF_LABELS, WORK_LABELS, allMeets, dutyTeam, eff, hasManyGroups, isThree, ledger, mEff, posOf } from '../lib/shift';
 import MonthCalendar from '../MonthCalendar';
 import SetupCard from '../SetupCard';
-import { markWrite, newId, spouseOf, useStore } from '../store';
+import { groupKind, markWrite, newId, spouseOf, useStore } from '../store';
 import { useTheme } from '../theme';
 import { Btn, Card, Chip, H2, Hint, HelpScope, Pill, SegRow } from '../ui';
 
-export default function CalendarScreen(): React.ReactElement {
+export default function CalendarScreen({ onTeam }: { onTeam?: (mode: 'create' | 'join') => void }): React.ReactElement {
   const t = useTheme();
   const { state, today, update } = useStore();
   const lyear = parse(today)[0];
@@ -151,8 +151,15 @@ export default function CalendarScreen(): React.ReactElement {
         </Card>
       ) : null}
 
-      {state.teamOn !== true && state.meetOn !== true && !state.cloud ? (
-        <Hint>동료와 근무를 공유하거나 모임 투표를 하려면 설정 탭의 "기능 켜기"에서 팀이나 모임을 켜세요.</Hint>
+      {onTeam && !(state.cloud ? [state.cloud] : []).concat(state.others || []).some((g) => groupKind(g) === 'team') ? (
+        <Card style={{ gap: 10, borderWidth: 2, borderColor: t.accent }}>
+          <H2>👥 동료와 같이 쓰면 더 좋아요</H2>
+          <Hint>같은 팀 동료의 근무·연가를 한 달력에서 보고, 날짜별로 빠지는 인원을 미리 확인하세요.</Hint>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1 }}><Btn label="팀 만들기" onPress={() => onTeam('create')} /></View>
+            <View style={{ flex: 1 }}><Btn ghost label="코드로 들어가기" onPress={() => onTeam('join')} /></View>
+          </View>
+        </Card>
       ) : null}
 
       <Text style={{ color: t.ink2, fontSize: 12, lineHeight: 18 }}>

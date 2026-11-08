@@ -15,6 +15,11 @@ import { Btn, Card, Chip, H2, Help, Hint, Pill, SegRow } from '../ui';
 
 type Sub = 'team' | 'leave' | 'meet';
 
+type FormMode = 'create' | 'join';
+const formListeners = new Set<(m: FormMode) => void>();
+/** 달력 화면의 안내 카드에서 팀 탭의 "만들기/들어가기" 칸을 골라 열 때 씁니다. */
+export function openTeamForm(m: FormMode): void { formListeners.forEach((f) => f(m)); }
+
 /** kind: 이 탭이 보여 줄 소모임 종류. 팀 탭은 근무 팀, 모임 탭은 모임 소모임만 다룹니다. */
 export default function TeamScreen({ kind }: { kind: GroupKind }): React.ReactElement {
   const { state } = useStore();
@@ -59,6 +64,12 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
   const alreadyIn = !!urlCode && ((state.cloud && state.cloud.code === urlCode) || (state.others || []).some((g) => g.code === urlCode));
   const [mode, setMode] = useState<'create' | 'join'>(urlCode && !alreadyIn ? 'join' : 'create');
   const [adding, setAdding] = useState(!!urlCode && !alreadyIn);
+  useEffect(() => {
+    if (isMeet) return undefined;
+    const f = (m: FormMode): void => setMode(m);
+    formListeners.add(f);
+    return () => { formListeners.delete(f); };
+  }, [isMeet]);
   const [name, setName] = useState('');
   const [nick, setNick] = useState(state.nick);
   const [code, setCode] = useState(urlCode && !alreadyIn ? urlCode : '');
@@ -207,7 +218,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
       {mode === 'create' ? (
         <View style={{ gap: 8 }}>
           <Text style={{ color: t.ink2, fontSize: 12 }}>{word} 이름</Text>
-          <TextInput value={name} onChangeText={(v: string) => setName(v)} maxLength={20} placeholderTextColor={t.ink2} style={field} />
+          <TextInput value={name} onChangeText={(v: string) => setName(v)} maxLength={20} placeholder={isMeet ? '예) 일요 러닝크루' : '예) 충무119안전센터 1팀'} placeholderTextColor={t.ink2} style={field} />
           <Text style={{ color: t.ink2, fontSize: 12 }}>초대 코드 (한글 가능, 직접 바꿔도 됩니다)</Text>
           <TextInput value={newCodeText} onChangeText={(v: string) => setNewCodeText(v)} maxLength={12} autoCapitalize="none" placeholderTextColor={t.ink2} style={field} />
           <Btn small ghost label="다른 코드 추천받기" onPress={() => setNewCodeText(genCode())} />
@@ -242,9 +253,26 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
     return (
       <Card style={{ gap: 10 }}>
         <H2>{isMeet ? '모임 (폰끼리 연결)' : '팀 (폰끼리 연결)'}</H2>
-        <Hint>{isMeet
-          ? '러닝크루·가족·동기모임처럼 근무와 상관없는 모임을 만드세요. 초대 코드로 들어온 사람들과 일정과 모임 투표를 함께 봅니다. 여러 개 만들거나 들어갈 수 있습니다.'
-          : '근무 팀을 만들면 초대 코드가 생깁니다. 같은 코드로 들어온 사람들의 근무와 연가계획이 서로의 폰에 보입니다. 여러 개 만들거나 들어갈 수 있습니다. 아래의 "우리 팀" 수동 입력은 혼자 써 볼 때만 쓰세요.'}</Hint>
+        {isMeet ? (
+          <Hint>러닝크루·가족·동기모임처럼 근무와 상관없는 모임을 만드세요. 초대 코드로 들어온 사람들과 일정과 모임 투표를 함께 봅니다. 여러 개 만들거나 들어갈 수 있습니다.</Hint>
+        ) : (
+          <View style={{ gap: 10 }}>
+            <Text style={{ color: t.ink, fontSize: 16, fontWeight: '800' }}>팀 만들기, 3단계면 끝</Text>
+            {[
+              { n: '1', b: '팀 이름을 정하고 만들기', d: '예) 충무119안전센터 1팀' },
+              { n: '2', b: '초대 코드를 카톡으로 보내기', d: '코드를 받은 동료가 들어옵니다' },
+              { n: '3', b: '서로의 근무·연가가 한 달력에!', d: '날짜별로 빠지는 인원이 숫자로 보여요' },
+            ].map((x) => (
+              <View key={x.n} style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                <View style={{ minWidth: 26, height: 26, borderRadius: 13, backgroundColor: t.duty, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.onDuty, fontWeight: '800', fontSize: 14 }}>{x.n}</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.ink, fontSize: 14.5, fontWeight: '700' }}>{x.b}</Text>
+                  <Text style={{ color: t.ink2, fontSize: 12.5, marginTop: 2 }}>{x.d}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
         {chips.length ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {chips.map((g) => <Chip key={g.code} label={g.name} on={false} onPress={() => switchTo(g.code)} />)}
