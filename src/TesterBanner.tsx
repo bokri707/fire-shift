@@ -56,7 +56,7 @@ export default function TesterBanner(): React.ReactElement | null {
         <Btn label="메일로 신청하기" onPress={apply} style={{ flex: 1 }} />
         <Btn ghost label="닫기" onPress={close} style={{ flex: 1 }} />
       </View>
-      <Text style={{ color: t.ink2, fontSize: 11.5, lineHeight: 16 }}>일반인이 만든 개인 앱입니다. 소방청이나 기관의 공식 서비스가 아닙니다.</Text>
+      <Text style={{ color: t.ink2, fontSize: 11.5, lineHeight: 16 }}>개인이 만든 앱입니다. 소방청이나 기관의 공식 서비스가 아닙니다.</Text>
     </View>
   );
 }
