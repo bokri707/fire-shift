@@ -16,9 +16,9 @@ import { Btn, Card, Chip, H2, Help, Hint, Pill, SegRow } from '../ui';
 type Sub = 'team' | 'leave' | 'meet';
 
 type FormMode = 'create' | 'join';
-const formListeners = new Set<(m: FormMode) => void>();
+const formListeners = new Set<(m: FormMode, code?: string) => void>();
 /** 달력 화면의 안내 카드에서 팀 탭의 "만들기/들어가기" 칸을 골라 열 때 씁니다. */
-export function openTeamForm(m: FormMode): void { formListeners.forEach((f) => f(m)); }
+export function openTeamForm(m: FormMode, code?: string): void { formListeners.forEach((f) => f(m, code)); }
 
 /** kind: 이 탭이 보여 줄 소모임 종류. 팀 탭은 근무 팀, 모임 탭은 모임 소모임만 다룹니다. */
 export default function TeamScreen({ kind }: { kind: GroupKind }): React.ReactElement {
@@ -66,7 +66,7 @@ function CloudCard({ kind }: { kind: GroupKind }): React.ReactElement | null {
   const [adding, setAdding] = useState(!!urlCode && !alreadyIn);
   useEffect(() => {
     if (isMeet) return undefined;
-    const f = (m: FormMode): void => setMode(m);
+    const f = (m: FormMode, cd?: string): void => { setMode(m); if (cd) setCode(cd); };
     formListeners.add(f);
     return () => { formListeners.delete(f); };
   }, [isMeet]);

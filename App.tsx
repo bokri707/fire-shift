@@ -8,7 +8,9 @@ import DutyNotifier from './src/DutyNotifier';
 import PollAlert from './src/PollAlert';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TeamScreen, { openTeamForm } from './src/screens/TeamScreen';
+import { installReferrerCode } from './src/lib/referrer';
 import TesterBanner from './src/TesterBanner';
+import InviteAppCard from './src/InviteAppCard';
 import { autoLeaveKakao, codeFromUrl, inKakaoBrowser, openInExternalBrowser } from './src/lib/link';
 import { WD, fromIdx, idx, parse, wdOf } from './src/lib/date';
 import { eff } from './src/lib/shift';
@@ -31,6 +33,16 @@ function Shell(): React.ReactElement {
   const { state, update, today } = useStore();
   const [tab, setTab] = useState<Tab>(codeFromUrl() ? 'team' : 'cal');
   useEffect(() => { if (Platform.OS === 'web') autoLeaveKakao(); }, []);
+  // 구글 플레이 초대 링크로 설치했다면, 처음 열 때 팀 "코드로 들어가기"에 초대 코드를 채워 줍니다.
+  useEffect(() => {
+    installReferrerCode().then((cd) => {
+      if (!cd) return;
+      update((s) => ({ ...s, teamOn: true }));
+      setTab('team');
+      openTeamForm('join', cd);
+    }).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 처음에는 달력·설정만 보여 주고, 소모임에 들어가거나 설정에서 켜면 해당 탭이 나타납니다.
   const groups = (state.cloud ? [state.cloud] : []).concat(state.others || []);
@@ -87,6 +99,7 @@ function Shell(): React.ReactElement {
         </View>
       </View>
       <TesterBanner />
+      <InviteAppCard />
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: t.line, backgroundColor: t.surface, marginTop: 8 }}>
         {shown.map((x) => (
           <Pressable

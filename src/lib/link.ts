@@ -1,4 +1,4 @@
-import { SITE_URL } from '../config';
+import { PLAY_URL, SITE_URL } from '../config';
 
 interface Loc { origin?: string; search?: string }
 
@@ -16,6 +16,11 @@ export function inviteLink(code: string): string {
   const o = loc().origin;
   const base = o && o.indexOf('http') === 0 ? o : SITE_URL.replace(/\/+$/, '');
   return base ? base + '/?code=' + encodeURIComponent(code) : '';
+}
+
+/** 구글 플레이 설치 주소에 초대 코드를 실어 보냅니다. 설치 뒤 앱을 처음 열면 코드가 자동으로 채워집니다. */
+export function playInviteLink(code: string): string {
+  return PLAY_URL + '&referrer=' + encodeURIComponent('code=' + code);
 }
 
 /** 가입을 마치면 주소의 ?code= 를 지웁니다. */
