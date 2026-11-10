@@ -421,10 +421,12 @@ function useMonth(startOffset: number): { view: { y: number; m: number }; move: 
   const moveRef = useRef(move);
   moveRef.current = move;
   const pan = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy),
+    onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy),
+    onPanResponderTerminationRequest: () => false,
     onPanResponderRelease: (_e, g) => {
-      if (g.dx <= -50) moveRef.current(1);
-      else if (g.dx >= 50) moveRef.current(-1);
+      if (g.dx <= -40 || (g.dx <= -20 && g.vx <= -0.4)) moveRef.current(1);
+      else if (g.dx >= 40 || (g.dx >= 20 && g.vx >= 0.4)) moveRef.current(-1);
     },
   }), []);
   const webTouch = (Platform.OS === 'web' ? { touchAction: 'pan-y' } : {}) as unknown as ViewStyle;
