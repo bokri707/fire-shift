@@ -4,13 +4,6 @@
     "slug": "fire-shift",
     "plugins": [
       [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-3967129261197383~9537626312",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
