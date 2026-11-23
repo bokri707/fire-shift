@@ -2,6 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "fire-shift",
   "compatibility_date": "2026-10-23",
+  // 작업 갈래(PR) 미리보기 빌드(npx wrangler preview)에 필요한 칸. 비워 두면 위 설정을 그대로 씀.
+  "previews": {},
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
