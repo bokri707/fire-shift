@@ -3,6 +3,7 @@
     "name": "소방 교대달력",
     "slug": "fire-shift",
     "plugins": [
+      "./plugins/optional-portrait",
       [
         "expo-splash-screen",
         {
